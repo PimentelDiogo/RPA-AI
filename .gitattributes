@@ -1,0 +1,13 @@
+# Normaliza fim de linha no repositório (o projeto é desenvolvido no Windows
+# e roda em container Linux) — evita diff inteiro de arquivo por CRLF.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.pdf binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+
+*.cmd text eol=crlf
+*.bat text eol=crlf
