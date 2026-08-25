@@ -1,0 +1,14 @@
+// Schema do portal SheepContabil.
+//
+// Bootstrap: apenas datasource e generator. O modelo de dados entra com o
+// núcleo do portal (usuários e perfis, módulos, Run/RunItem, agendamento) e
+// depois cresce por módulo — cada automação adiciona suas próprias tabelas.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}

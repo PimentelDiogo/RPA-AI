@@ -1,0 +1,23 @@
+# Postgres local do portal. Em produção o banco é o Neon; aqui é container,
+# para que qualquer pessoa suba o projeto com um comando.
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: sheep-portal-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sheep
+      POSTGRES_PASSWORD: sheep
+      POSTGRES_DB: sheep_portal
+    ports:
+      - "5432:5432"
+    volumes:
+      - sheep-portal-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sheep -d sheep_portal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sheep-portal-db:

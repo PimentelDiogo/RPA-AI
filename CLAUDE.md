@@ -162,9 +162,9 @@ Restrições que a stack precisa atender: autenticação com sessão e dois perf
 | Camada | Escolha | Por quê |
 |--------|---------|---------|
 | Linguagem | **TypeScript** (Node 22) | Mesma linguagem do portal ao worker; tipagem sustenta as fronteiras `port`/`adapter` |
-| Framework | **Next.js 15 (App Router)** | Portal, telas dos módulos e endpoints de execução num deploy só |
+| Framework | **Next.js 16 (App Router)** | Portal, telas dos módulos e endpoints de execução num deploy só |
 | Auth | **Auth.js (NextAuth) — credentials + sessão em cookie httpOnly**, senha com `argon2` | R3: autenticação real, com sessão. Papéis `admin` / `operador` (por área) no token e checados no servidor |
-| Dados | **PostgreSQL + Prisma** (Neon free) | Migrations versionadas = ambiente reproduzível; seed em `prisma/seed.ts` |
+| Dados | **PostgreSQL + Prisma 7** (driver adapter `pg`; Neon free em produção) | Migrations versionadas = ambiente reproduzível; seed em `prisma/seed.ts` |
 | UI | **Tailwind + shadcn/ui**, tokens da §5 num único `tokens.css` | Identidade aplicada sem hex solto |
 | Agendamento | Tabela `schedule` + `job_queue` no Postgres; **tick** em `POST /api/scheduler/tick` disparado por **GitHub Actions cron** (a cada 15 min, com token) | Agendador que roda sem ninguém logado, sem depender do limite de cron do plano free da hospedagem; o cron externo aparece no repo como infra |
 | Execução | Fila persistida com `attempt`, backoff e status por item | "Falha com dignidade" e "consulta que falhou não pode sumir" caem no mesmo mecanismo |
