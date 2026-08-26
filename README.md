@@ -29,7 +29,9 @@ eram duas):
 | SC-20 | Vencimento de certificado digital | Controle sistematizado | 2 h/mês | a fazer |
 
 A escolha, o raciocínio por trás dela e as armadilhas de cada processo estão em
-[CLAUDE.md](CLAUDE.md), que é o contrato deste projeto.
+[CLAUDE.md](CLAUDE.md), que é o contrato deste projeto. O projeto detalhado de cada
+automação — especificação, decisões e **o passo a passo para testar** — está em
+[SDD/](SDD/), um diretório por módulo.
 
 ## Stack
 
@@ -119,6 +121,10 @@ ler com confiança.
 ```
 .
 ├── CLAUDE.md              # contrato do projeto: regras de entrega, escopo, decisões
+├── SDD/                   # projeto de cada automação
+│   └── SC-XX/
+│       ├── SDD.md         # especificação, decisões e como testar
+│       └── CLAUDE.md      # o contrato que vale dentro daquele módulo
 ├── docs/
 │   ├── brand/             # logo da SheepContabil (seção 06 do enunciado)
 │   ├── SUPOSICOES.md      # o que foi assumido onde faltou contexto, e por quê

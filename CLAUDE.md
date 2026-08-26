@@ -230,6 +230,7 @@ Exigida pelo enunciado ("só declare o que usou e onde"). Manter em `docs/USO-DE
 
 ## 9. Diretrizes para o agente (Claude) neste repositório
 
+0. **Cada módulo tem o seu documento de projeto em `SDD/SC-XX/`** — `SDD.md` com a especificação e o roteiro de teste, `CLAUDE.md` com o contrato daquele módulo. Ler antes de mexer no módulo; manter atualizado junto com o código.
 1. **Antes de decidir qualquer regra de negócio, releia a descrição do processo no PDF.** Não inventar requisito que o enunciado não pede; não ignorar a linha "Atenção" — é onde está a armadilha avaliada.
 2. **Toda suposição vira uma linha em `docs/SUPOSICOES.md`** no mesmo commit em que a decisão entra no código.
 3. **Fronteira externa nunca é chamada direto.** Sempre `port` (interface) + `adapter` mock. O adapter real fica como stub documentado.
