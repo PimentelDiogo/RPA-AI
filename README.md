@@ -71,9 +71,23 @@ Ou, em um comando só, depois de criar o `.env`:
 npm run setup && npm run dev
 ```
 
+O Postgres do compose escuta na porta **5433** do host, para conviver com outro
+Postgres eventualmente já rodando na 5432.
+
 **Sem Docker:** aponte `DATABASE_URL` no `.env` para qualquer Postgres 15+ (um
 banco gratuito do [Neon](https://neon.tech) serve) e rode a partir do
 `npm run db:migrate`.
+
+**Docker no WSL, Node no Windows:** funciona, desde que o WSL esteja em rede
+espelhada. Crie `%USERPROFILE%\.wslconfig` com o conteúdo abaixo e rode
+`wsl --shutdown` uma vez — sem `vmIdleTimeout`, a VM do WSL encerra quando
+ociosa e derruba o banco no meio do trabalho.
+
+```ini
+[wsl2]
+networkingMode=mirrored
+vmIdleTimeout=-1
+```
 
 ### Scripts
 

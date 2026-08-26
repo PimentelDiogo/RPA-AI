@@ -9,8 +9,9 @@ services:
       POSTGRES_USER: sheep
       POSTGRES_PASSWORD: sheep
       POSTGRES_DB: sheep_portal
+    # 5433 no host: a 5432 costuma estar ocupada por outro Postgres local.
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - sheep-portal-db:/var/lib/postgresql/data
     healthcheck:
