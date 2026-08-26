@@ -15,9 +15,23 @@ export function Cabecalho({ sessao }: { sessao: Session }) {
   return (
     <header className="bg-petroleo text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
-        <Link href="/" className="shrink-0">
-          <Marca fundo="tinta" />
-        </Link>
+        <div className="flex items-center gap-8">
+          <Link href="/" className="shrink-0">
+            <Marca fundo="tinta" />
+          </Link>
+
+          <nav className="flex items-center gap-5 text-sm">
+            <Link href="/" className="text-white/80 transition-colors hover:text-white">
+              Módulos
+            </Link>
+            <Link
+              href="/execucoes"
+              className="text-white/80 transition-colors hover:text-white"
+            >
+              Execuções
+            </Link>
+          </nav>
+        </div>
 
         <div className="flex items-center gap-4">
           <div className="text-right leading-tight">
