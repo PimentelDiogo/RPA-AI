@@ -22,6 +22,11 @@ const credenciais = z.object({
 });
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  // O portal roda atrás do proxy da hospedagem, então o host da requisição
+  // chega por cabeçalho encaminhado. Sem confiar nele, o Auth.js recusa as
+  // próprias rotas com um erro genérico de configuração — que foi exatamente
+  // o que derrubou o login no primeiro deploy.
+  trustHost: true,
   session: {
     strategy: "jwt",
     maxAge: 8 * 60 * 60,

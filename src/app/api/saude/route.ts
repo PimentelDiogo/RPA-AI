@@ -22,6 +22,13 @@ export const dynamic = "force-dynamic";
 const OBRIGATORIAS = ["DATABASE_URL", "AUTH_SECRET", "SCHEDULER_TOKEN"] as const;
 const OPCIONAIS = ["DIRECT_URL", "ANTHROPIC_API_KEY"] as const;
 
+/**
+ * Marcadores que decidem como o Auth.js se comporta. Não são segredo — são
+ * sinalizadores de plataforma — e sem eles à vista o diagnóstico de sessão
+ * vira adivinhação.
+ */
+const MARCADORES = ["NODE_ENV", "VERCEL", "VERCEL_ENV", "AUTH_TRUST_HOST", "AUTH_URL"] as const;
+
 function definida(nome: string): boolean {
   const valor = process.env[nome];
   return typeof valor === "string" && valor.trim().length > 0;
@@ -35,6 +42,10 @@ export async function GET() {
 
   const faltando = OBRIGATORIAS.filter((nome) => !definida(nome));
 
+  const plataforma = Object.fromEntries(
+    MARCADORES.map((nome) => [nome, process.env[nome] ?? "não definida"]),
+  );
+
   const [banco, autenticacao] = await Promise.all([
     verificarBanco(),
     verificarAutenticacao(),
@@ -46,6 +57,7 @@ export async function GET() {
     {
       ok,
       ambiente,
+      plataforma,
       banco,
       autenticacao,
       // Ajuda a saber se o deploy que respondeu é o que você acabou de publicar.
