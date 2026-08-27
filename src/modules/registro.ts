@@ -1,4 +1,5 @@
 import type { HandlerModulo } from "@/lib/execucao/motor";
+import { handlerSc20 } from "@/modules/sc-20/handler";
 
 /**
  * Registro dos handlers implementados.
@@ -12,7 +13,7 @@ import type { HandlerModulo } from "@/lib/execucao/motor";
  * Cada automação acrescenta uma linha aqui na branch do seu módulo.
  */
 const HANDLERS = new Map<string, HandlerModulo>([
-  // ["SC-20", handlerSc20],
+  ["SC-20", (contexto) => handlerSc20(contexto)],
 ]);
 
 export function handlerDoModulo(codigo: string): HandlerModulo | undefined {

@@ -15,7 +15,12 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "../src/generated/prisma/client";
-import { Area, Perfil } from "../src/generated/prisma/enums";
+import {
+  Area,
+  FaixaVencimento,
+  Perfil,
+  TipoCertificado,
+} from "../src/generated/prisma/enums";
 import { gerarHashDeSenha } from "../src/lib/auth/senha";
 
 const connectionString = process.env.DATABASE_URL;
@@ -154,10 +159,120 @@ async function semearAgendamentos() {
   console.log(`[seed] ${AGENDAMENTOS.length} agendamentos`);
 }
 
+/**
+ * Certificados do SC-20.
+ *
+ * As datas são **relativas ao dia em que o seed roda**, nunca fixas: o painel
+ * dos próximos 60 dias precisa fazer sentido em qualquer dia de demonstração.
+ * A massa cobre todas as faixas de propósito, incluindo um caso sem contato
+ * cadastrado — que produz uma falha legível e mostra como o portal se comporta
+ * quando o dado está incompleto.
+ */
+const CERTIFICADOS = [
+  // [razaoSocial do cliente, titular, tipo, emissor, dias até vencer]
+  ["Padaria Trigo de Ouro Ltda", "Marcos Prado", "A1", "Certisign", -12],
+  ["Transportadora Rota Sul Ltda", "Helena Bastos", "A3", "Serasa", -3],
+  ["Clínica Vida Plena S/S", "Dr. Aurélio Nunes", "A1", "Valid", 4],
+  ["Metalúrgica Ferro Forte Ltda", "Cláudia Reis", "A1", "Soluti", 11],
+  ["Comercial Bom Preço Ltda", "Jonas Teixeira", "A3", "Certisign", 15],
+  ["Agropecuária Campo Verde Ltda", "Sebastião Lopes", "A1", "Valid", 21],
+  ["Construtora Alicerce Ltda", "Regina Sampaio", "A1", "Serasa", 27],
+  ["Consultoria Norte Digital ME", "Igor Fontes", "A3", "Soluti", 30],
+  ["Restaurante Sabor da Serra Ltda", "Marta Wagner", "A1", "Certisign", 38],
+  ["Auto Peças Giro Rápido Ltda", "Válter Camargo", "A1", "Valid", 47],
+  ["Laboratório Analisa Ltda", "Priscila Amorim", "A3", "Serasa", 52],
+  ["Escola Semear Educação Ltda", "Fábio Estrela", "A1", "Soluti", 59],
+  // Fora da janela: provam que o filtro funciona.
+  ["Padaria Trigo de Ouro Ltda", "Marcos Prado", "A3", "Serasa", 120],
+  ["Clínica Vida Plena S/S", "Dra. Sônia Vilela", "A1", "Certisign", 200],
+  ["Metalúrgica Ferro Forte Ltda", "Cláudia Reis", "A3", "Valid", 300],
+] as const;
+
+/** Clientes que NÃO recebem contato: geram a falha legível de propósito. */
+const SEM_CONTATO = new Set(["Escola Semear Educação Ltda"]);
+
+const CONTATOS = [
+  ["Rafael Queiroz", "rafael.queiroz@sheepcontabil.com.br"],
+  ["Camila Diniz", "camila.diniz@sheepcontabil.com.br"],
+] as const;
+
+function emDias(dias: number): Date {
+  const hoje = new Date();
+  const data = new Date(
+    Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate()),
+  );
+  data.setUTCDate(data.getUTCDate() + dias);
+  return data;
+}
+
+async function semearCertificados() {
+  // Recomeça a massa do módulo a cada seed: datas relativas precisam ser
+  // recalculadas, senão o painel envelhece junto com o banco.
+  await prisma.avisoCertificado.deleteMany();
+  await prisma.certificado.deleteMany();
+  await prisma.contatoAviso.deleteMany();
+
+  const clientes = await prisma.cliente.findMany({
+    select: { id: true, razaoSocial: true },
+  });
+  const porRazaoSocial = new Map(clientes.map((c) => [c.razaoSocial, c.id]));
+
+  for (const [indice, cliente] of clientes.entries()) {
+    if (SEM_CONTATO.has(cliente.razaoSocial)) continue;
+
+    const [nome, email] = CONTATOS[indice % CONTATOS.length];
+    await prisma.contatoAviso.create({
+      data: { clienteId: cliente.id, nome, email },
+    });
+  }
+
+  for (const [razaoSocial, titular, tipo, emissor, dias] of CERTIFICADOS) {
+    const clienteId = porRazaoSocial.get(razaoSocial);
+    if (!clienteId) continue;
+
+    await prisma.certificado.create({
+      data: {
+        clienteId,
+        titular,
+        tipo: tipo as TipoCertificado,
+        emissor,
+        validade: emDias(dias),
+      },
+    });
+  }
+
+  // Um aviso antigo, numa faixa que já passou: a primeira execução após o seed
+  // demonstra os três desfechos de uma vez — aviso novo, aviso por mudança de
+  // faixa e supressão.
+  const comAvisoAntigo = await prisma.certificado.findFirst({
+    where: { cliente: { razaoSocial: "Agropecuária Campo Verde Ltda" } },
+    include: { cliente: { select: { contatos: true } } },
+  });
+
+  if (comAvisoAntigo) {
+    await prisma.avisoCertificado.create({
+      data: {
+        certificadoId: comAvisoAntigo.id,
+        contatoId: comAvisoAntigo.cliente.contatos[0]?.id,
+        faixa: FaixaVencimento.ATE_60,
+        diasRestantes: 52,
+        conteudo:
+          "Aviso anterior sobre o certificado, quando ele ainda estava na faixa de 60 dias.",
+        registradoEm: emDias(-31),
+      },
+    });
+  }
+
+  console.log(
+    `[seed] ${CERTIFICADOS.length} certificados, ${clientes.length - SEM_CONTATO.size} contatos de aviso`,
+  );
+}
+
 async function main() {
   await semearUsuarios();
   await semearClientes();
   await semearAgendamentos();
+  await semearCertificados();
 }
 
 main()
