@@ -190,3 +190,43 @@ describe("portal que volta a funcionar", () => {
     expect(falhasNoHistorico).toHaveLength(0);
   });
 });
+
+describe("orçamento de tempo", () => {
+  it("para por conta própria e declara o que não deu tempo de consultar", async () => {
+    // A hospedagem encerraria a função em 60s sem aviso, e o que estivesse em
+    // andamento sumiria sem registro — o oposto do que este módulo promete.
+    apenasReceita();
+    bancoFake.clientes.push(
+      {
+        id: "cli-2",
+        cnpj: "42239399000108",
+        razaoSocial: "Auto Peças Giro Rápido Ltda",
+        nomeFantasia: "Giro Rápido",
+      },
+      {
+        id: "cli-3",
+        cnpj: "41275422000157",
+        razaoSocial: "Clínica Vida Plena S/S",
+        nomeFantasia: "Vida Plena",
+      },
+    );
+
+    // Orçamento zero: nenhuma consulta deve ser feita, e todas as 12 (3
+    // clientes × 4 órgãos) precisam aparecer declaradas.
+    const resultado = await handlerSc02(
+      contexto,
+      adapterQue(leituraBoa(SituacaoApurada.REGULAR)),
+      POLITICA,
+      0,
+    );
+
+    const ignorados = itens.filter((item) => item.status === StatusItem.IGNORADO);
+
+    expect(ignorados).toHaveLength(12);
+    expect(ignorados[0].mensagem).toContain("tempo disponível acabou");
+    expect(resultado.resumo).toContain("não consultados por falta de tempo");
+
+    // E nada foi gravado como leitura: não inventa situação que não apurou.
+    expect(bancoFake.situacoes).toHaveLength(0);
+  });
+});

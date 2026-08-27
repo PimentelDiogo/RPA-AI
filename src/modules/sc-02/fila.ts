@@ -27,7 +27,10 @@ export type Politica = {
 export const POLITICA_PADRAO: Politica = {
   tentativas: 3,
   esperaBaseMs: 400,
-  concorrencia: 4,
+  // Consulta a portal é espera de rede, não trabalho de processador: 8 em voo
+  // cortam o tempo da rodada pela metade sem martelar o portal. O limite existe
+  // porque portal real derruba quem exagera.
+  concorrencia: 8,
 };
 
 export function esperaDaTentativa(tentativa: number, politica: Politica): number {

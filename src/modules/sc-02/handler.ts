@@ -20,11 +20,23 @@ import type { ConsultaOrgao } from "@/modules/sc-02/ports/consulta-orgao";
  * nela. É o que permite o painel dizer "irregular" e "não conseguimos
  * perguntar" como coisas diferentes, que é a armadilha deste processo.
  */
+/**
+ * Quanto tempo a rodada pode gastar antes de parar por conta própria.
+ *
+ * A hospedagem encerra a função em 60 segundos, sem cerimônia: o que estivesse
+ * em andamento sumiria sem registro — exatamente o que a armadilha deste
+ * processo proíbe. Então a rodada para antes, e diz o que não deu tempo de
+ * consultar.
+ */
+const ORCAMENTO_PADRAO_MS = 45_000;
+
 export async function handlerSc02(
   contexto: ContextoExecucao,
   consulta: ConsultaOrgao = new OrgaoHttp(),
   politica: Politica = POLITICA_PADRAO,
+  orcamentoMs: number = ORCAMENTO_PADRAO_MS,
 ): Promise<ResultadoHandler> {
+  const prazo = Date.now() + orcamentoMs;
   const clientes = await prisma.cliente.findMany({
     where: { ativo: true },
     select: { id: true, cnpj: true, razaoSocial: true, nomeFantasia: true },
@@ -47,9 +59,31 @@ export async function handlerSc02(
     })),
   );
 
-  const contagem = { regular: 0, irregular: 0, indisponivel: 0, semResposta: 0 };
+  const contagem = {
+    regular: 0,
+    irregular: 0,
+    indisponivel: 0,
+    semResposta: 0,
+    naoConsultados: 0,
+  };
 
   await processarEmLote(fila, politica.concorrencia, async (par) => {
+    const referenciaDoPar = `${par.nome} — ${ROTULO_ORGAO[par.orgao]}`;
+
+    if (Date.now() >= prazo) {
+      // Não fica em silêncio: o par aparece no histórico como não consultado,
+      // e a próxima rodada o pega. Melhor uma lacuna declarada do que uma
+      // lacuna invisível.
+      contagem.naoConsultados += 1;
+      await contexto.registrarItem({
+        referencia: referenciaDoPar,
+        status: StatusItem.IGNORADO,
+        mensagem:
+          "Não consultado nesta rodada: o tempo disponível acabou. Será consultado na próxima.",
+      });
+      return;
+    }
+
     const { tentativas, final } = await comRetry(
       () => consulta.consultar(par.cnpj, par.orgao),
       (resultado) => resultado.sucesso,
@@ -76,7 +110,7 @@ export async function handlerSc02(
       });
     }
 
-    const referencia = `${par.nome} — ${ROTULO_ORGAO[par.orgao]}`;
+    const referencia = referenciaDoPar;
 
     if (!final.sucesso) {
       contagem.semResposta += 1;
@@ -133,7 +167,12 @@ export async function handlerSc02(
   });
 
   return {
-    resumo: `${fila.length} consultas · ${contagem.regular} regulares · ${contagem.irregular} irregulares · ${contagem.indisponivel} indisponíveis · ${contagem.semResposta} sem resposta`,
+    resumo:
+      `${fila.length} consultas · ${contagem.regular} regulares · ${contagem.irregular} irregulares · ` +
+      `${contagem.indisponivel} indisponíveis · ${contagem.semResposta} sem resposta` +
+      (contagem.naoConsultados > 0
+        ? ` · ${contagem.naoConsultados} não consultados por falta de tempo`
+        : ""),
   };
 }
 

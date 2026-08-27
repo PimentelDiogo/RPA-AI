@@ -16,6 +16,14 @@ import { executarTick } from "@/lib/agendamento/tick";
  */
 export const dynamic = "force-dynamic";
 
+/**
+ * A rodada de um módulo pode consultar dezenas de portais. O padrão da
+ * hospedagem encerraria a função antes do fim; os handlers têm orçamento
+ * próprio, menor que este teto, para pararem por conta própria e registrarem o
+ * que ficou de fora.
+ */
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   if (!autorizado(request)) {
     // Sem detalhe do motivo: o endpoint dispara automação, e não deve ajudar
