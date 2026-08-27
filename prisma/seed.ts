@@ -27,7 +27,11 @@ if (!connectionString) {
 }
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString }),
+  adapter: new PrismaPg(
+    { connectionString },
+    // O schema vem da própria URL: em produção o portal não vive no `public`.
+    { schema: new URL(connectionString).searchParams.get("schema") ?? undefined },
+  ),
 });
 
 /**

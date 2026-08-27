@@ -45,7 +45,7 @@ automação — especificação, decisões e **o passo a passo para testar** —
 | Autenticação | Auth.js — credentials + sessão, perfis `admin` e `operador` |
 | Agendamento | Fila no Postgres + tick chamado por cron externo |
 | IA | `@anthropic-ai/sdk` (`claude-opus-5`) — apenas no SC-01 |
-| Hospedagem | Vercel (portal) + Neon (banco) |
+| Hospedagem | Vercel (portal) + Supabase (Postgres gerenciado) |
 
 O detalhamento por módulo — inclusive o que é determinístico e o que é IA — está
 na seção 8 do [CLAUDE.md](CLAUDE.md).
@@ -77,8 +77,13 @@ O Postgres do compose escuta na porta **5433** do host, para conviver com outro
 Postgres eventualmente já rodando na 5432.
 
 **Sem Docker:** aponte `DATABASE_URL` no `.env` para qualquer Postgres 15+ (um
-banco gratuito do [Neon](https://neon.tech) serve) e rode a partir do
-`npm run db:migrate`.
+banco gratuito do [Supabase](https://supabase.com) ou do [Neon](https://neon.tech)
+serve) e rode a partir do `npm run db:migrate`.
+
+**Em produção**, o portal usa o transaction pooler do Supabase e vive num schema
+próprio (`?schema=sheep`), porque o banco é compartilhado com outra aplicação. As
+migrations passam pelo session pooler, via `DIRECT_URL`: o pooler de transações não
+aceita DDL.
 
 **Docker no WSL, Node no Windows:** funciona, desde que o WSL esteja em rede
 espelhada. Crie `%USERPROFILE%\.wslconfig` com o conteúdo abaixo e rode
