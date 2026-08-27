@@ -267,12 +267,18 @@ Casos cobertos (14 no total, entre cálculo de prazo, classificação e régua):
 
 ### 10.4 Teste do disparo agendado
 
-Simula o cron externo, sem esperar as 8h:
+Sem esperar as 8h da manhã — antecipe a janela e chame o tick. Sem o primeiro
+comando nada acontece: o agendador só executa o que está vencido.
 
 ```bash
+npx tsx scripts/forcar-agendamento.ts SC-20
 curl -X POST http://localhost:3000/api/scheduler/tick \
   -H "Authorization: Bearer $SCHEDULER_TOKEN"
 ```
+
+Em produção é o mesmo caminho, disparando o workflow pelo GitHub:
+**Actions → Agendador → Run workflow**. É assim que a demonstração prova que a
+automação roda sozinha, sem ninguém logado.
 
 Verifique em `/execucoes` que surgiu uma execução com disparo **Agendado** e sem pessoa
 associada — a coluna mostra "Agendador".
