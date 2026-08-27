@@ -177,21 +177,37 @@ async function carregarFalhasAbertas(
   );
 
   // Última tentativa de cada par cliente × órgão.
-  const ultimas = await prisma.$queryRaw<
-    {
-      clienteId: string;
-      orgao: OrgaoConsultado;
-      sucesso: boolean;
-      erro: string | null;
-      iniciadaEm: Date;
-      tentativa: number;
-    }[]
-  >`
-    select distinct on ("clienteId", orgao)
-      "clienteId", orgao, sucesso, erro, "iniciadaEm", tentativa
-    from consulta_tentativa
-    order by "clienteId", orgao, "iniciadaEm" desc
-  `;
+  //
+  // Feito com groupBy + findMany em vez de SQL cru de propósito: consulta crua
+  // não passa pela qualificação de schema do adapter, e o portal vive num
+  // schema próprio em produção. A versão anterior funcionava em
+  // desenvolvimento, onde o schema é `public`, e quebrava no ar.
+  const maisRecentes = await prisma.consultaTentativa.groupBy({
+    by: ["clienteId", "orgao"],
+    _max: { iniciadaEm: true },
+  });
+
+  if (maisRecentes.length === 0) return [];
+
+  const ultimas = await prisma.consultaTentativa.findMany({
+    where: {
+      OR: maisRecentes
+        .filter((grupo) => grupo._max.iniciadaEm !== null)
+        .map((grupo) => ({
+          clienteId: grupo.clienteId,
+          orgao: grupo.orgao,
+          iniciadaEm: grupo._max.iniciadaEm as Date,
+        })),
+    },
+    select: {
+      clienteId: true,
+      orgao: true,
+      sucesso: true,
+      erro: true,
+      iniciadaEm: true,
+      tentativa: true,
+    },
+  });
 
   const abertas = ultimas.filter((t) => !t.sucesso);
   if (abertas.length === 0) return [];
