@@ -23,11 +23,36 @@ const OBRIGATORIAS = ["DATABASE_URL", "AUTH_SECRET", "SCHEDULER_TOKEN"] as const
 const OPCIONAIS = ["DIRECT_URL", "ANTHROPIC_API_KEY"] as const;
 
 /**
- * Marcadores que decidem como o Auth.js se comporta. Não são segredo — são
- * sinalizadores de plataforma — e sem eles à vista o diagnóstico de sessão
- * vira adivinhação.
+ * Sinalizadores da plataforma. Estes três são valores fixos definidos pela
+ * hospedagem, nunca conteúdo digitado por alguém — podem aparecer inteiros.
  */
-const MARCADORES = ["NODE_ENV", "VERCEL", "VERCEL_ENV", "AUTH_TRUST_HOST", "AUTH_URL"] as const;
+const SINALIZADORES = ["NODE_ENV", "VERCEL", "VERCEL_ENV"] as const;
+
+/**
+ * Variáveis de configuração que alguém preenche à mão. O valor NUNCA é
+ * exibido, mesmo quando "deveria" ser inofensivo: já aconteceu de um segredo
+ * ser colado na variável errada, e um diagnóstico público que ecoa o que
+ * recebe transforma o erro de digitação em vazamento. O que se mostra é a
+ * forma do valor, que é o que ajuda a achar o engano.
+ */
+const CONFIGURACOES = ["AUTH_TRUST_HOST", "AUTH_URL"] as const;
+
+function descrever(nome: string): string {
+  const valor = process.env[nome];
+  if (valor === undefined) return "não definida";
+  if (valor.trim().length === 0) return "definida, porém vazia";
+
+  if (nome.endsWith("_URL")) {
+    try {
+      const url = new URL(valor);
+      return `definida (${url.protocol}//${url.host})`;
+    } catch {
+      return "definida, mas o valor NÃO é uma URL válida";
+    }
+  }
+
+  return "definida";
+}
 
 function definida(nome: string): boolean {
   const valor = process.env[nome];
@@ -42,9 +67,10 @@ export async function GET() {
 
   const faltando = OBRIGATORIAS.filter((nome) => !definida(nome));
 
-  const plataforma = Object.fromEntries(
-    MARCADORES.map((nome) => [nome, process.env[nome] ?? "não definida"]),
-  );
+  const plataforma = Object.fromEntries([
+    ...SINALIZADORES.map((nome) => [nome, process.env[nome] ?? "não definida"]),
+    ...CONFIGURACOES.map((nome) => [nome, descrever(nome)]),
+  ]);
 
   const [banco, autenticacao] = await Promise.all([
     verificarBanco(),
