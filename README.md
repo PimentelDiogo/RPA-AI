@@ -12,7 +12,22 @@ execução e saída visível — tudo hospedado na nuvem, com URL pública.
 > Nenhum acesso a sistema, base ou portal de órgão foi concedido: toda fronteira
 > externa é mockada e toda massa de dados é sintética, gerada pelo seed.
 
-**URL pública:** _a publicar_ · **Credenciais de demonstração:** _a publicar_
+## Acesso
+
+**Portal no ar:** **https://rpa-ai.vercel.app**
+
+Credenciais de demonstração — a senha é a mesma para as três contas, e cada uma
+existe para mostrar um recorte diferente de permissão:
+
+| E-mail | Senha | Perfil | Enxerga |
+|--------|-------|--------|---------|
+| `admin@sheepcontabil.com.br` | `sheep2026` | Administrador | Os quatro módulos |
+| `processos@sheepcontabil.com.br` | `sheep2026` | Operador — Processos | SC-02 e SC-20 |
+| `contabil@sheepcontabil.com.br` | `sheep2026` | Operador — Contábil | SC-01 |
+
+Se o portal parecer fora do ar, [`/api/saude`](https://rpa-ai.vercel.app/api/saude)
+responde em uma requisição se as variáveis chegaram, se o banco responde e qual
+commit está publicado — sem expor nenhum valor.
 
 ---
 
@@ -45,7 +60,7 @@ automação — especificação, decisões e **o passo a passo para testar** —
 | Autenticação | Auth.js — credentials + sessão, perfis `admin` e `operador` |
 | Agendamento | Fila no Postgres + tick chamado por cron externo |
 | IA | `@anthropic-ai/sdk` (`claude-opus-5`) — apenas no SC-01 |
-| Hospedagem | Vercel (portal) + Supabase (Postgres gerenciado) |
+| Hospedagem | Vercel, região `gru1` (portal) + Supabase, `sa-east-1` (Postgres) |
 
 O detalhamento por módulo — inclusive o que é determinístico e o que é IA — está
 na seção 8 do [CLAUDE.md](CLAUDE.md).
