@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
 /**
@@ -34,15 +35,19 @@ export async function GET() {
 
   const faltando = OBRIGATORIAS.filter((nome) => !definida(nome));
 
-  const banco = await verificarBanco();
+  const [banco, autenticacao] = await Promise.all([
+    verificarBanco(),
+    verificarAutenticacao(),
+  ]);
 
-  const ok = faltando.length === 0 && banco.ok;
+  const ok = faltando.length === 0 && banco.ok && autenticacao.ok;
 
   return NextResponse.json(
     {
       ok,
       ambiente,
       banco,
+      autenticacao,
       // Ajuda a saber se o deploy que respondeu é o que você acabou de publicar.
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? "desconhecido",
       regiao: process.env.VERCEL_REGION ?? "local",
@@ -69,6 +74,33 @@ async function verificarBanco() {
     return {
       ok: false,
       detalhe: "não foi possível consultar o banco",
+      causa: semCredenciais(erro instanceof Error ? erro.message : String(erro)),
+    };
+  }
+}
+
+/**
+ * O Auth.js responde "There was a problem with the server configuration" para
+ * qualquer erro de configuração, sem dizer qual. Aqui a configuração é
+ * exercitada de verdade e o tipo do erro aparece — que é a diferença entre
+ * corrigir e adivinhar.
+ */
+async function verificarAutenticacao() {
+  try {
+    await auth();
+    return { ok: true, detalhe: "configuração válida" };
+  } catch (erro) {
+    const tipo =
+      erro && typeof erro === "object" && "type" in erro
+        ? String((erro as { type: unknown }).type)
+        : erro instanceof Error
+          ? erro.name
+          : "desconhecido";
+
+    return {
+      ok: false,
+      detalhe: "configuração inválida",
+      tipo,
       causa: semCredenciais(erro instanceof Error ? erro.message : String(erro)),
     };
   }
