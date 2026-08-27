@@ -139,6 +139,40 @@ npx tsx scripts/verificar-agenda.ts
 Em produção, configure os segredos `PORTAL_URL` e `SCHEDULER_TOKEN` no repositório
 (Settings → Secrets → Actions).
 
+## Deploy
+
+O portal roda na **Vercel**, com deploy automático a partir de `main`, e o banco é o
+**Supabase**. Para reproduzir:
+
+1. Importe o repositório em [vercel.com/new](https://vercel.com/new). O framework é
+   detectado sozinho; o build já roda `prisma generate` antes do `next build`, porque o
+   client não é versionado.
+2. Configure as variáveis de ambiente do projeto:
+
+   | Variável | Valor |
+   |----------|-------|
+   | `DATABASE_URL` | Transaction pooler do Supabase (6543), com `?schema=sheep` |
+   | `DIRECT_URL` | Session pooler do Supabase (5432), com `?schema=sheep` |
+   | `AUTH_SECRET` | `openssl rand -base64 32` |
+   | `SCHEDULER_TOKEN` | Um segredo qualquer, o mesmo do cron |
+
+   `AUTH_URL` não é necessária na Vercel: o Auth.js descobre a URL do deploy.
+
+3. Aplique as migrations contra o banco de produção, a partir da sua máquina:
+
+   ```bash
+   DIRECT_URL="<session pooler>" DATABASE_URL="<session pooler>" npx prisma migrate deploy
+   DATABASE_URL="<session pooler>" npx tsx prisma/seed.ts
+   ```
+
+4. Nos segredos do repositório (Settings → Secrets → Actions), defina `PORTAL_URL` com a
+   URL pública e `SCHEDULER_TOKEN` com o mesmo valor da Vercel, para o cron do agendador
+   passar a disparar.
+
+Se possível, escolha a região **`gru1` (São Paulo)** nas configurações do projeto na
+Vercel: o banco está em `sa-east-1`, e cada ida ao banco atravessando o continente
+aparece no tempo de resposta.
+
 ## Configuração de ambiente
 
 Todas as variáveis estão documentadas em [`.env.example`](.env.example) — esse
