@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { baseDosOrgaos } from "@/modules/sc-02/orgaos";
 
 /**
  * GET /api/saude
@@ -26,7 +27,16 @@ const OPCIONAIS = ["DIRECT_URL", "ANTHROPIC_API_KEY"] as const;
  * Sinalizadores da plataforma. Estes três são valores fixos definidos pela
  * hospedagem, nunca conteúdo digitado por alguém — podem aparecer inteiros.
  */
-const SINALIZADORES = ["NODE_ENV", "VERCEL", "VERCEL_ENV"] as const;
+const SINALIZADORES = [
+  "NODE_ENV",
+  "VERCEL",
+  "VERCEL_ENV",
+  // Endereços públicos da hospedagem, não segredo. Estão aqui porque a
+  // aplicação consulta o portal simulado que ela mesma serve, e descobrir qual
+  // endereço ela está usando custou uma rodada de diagnóstico.
+  "VERCEL_PROJECT_PRODUCTION_URL",
+  "VERCEL_URL",
+] as const;
 
 /**
  * Variáveis de configuração que alguém preenche à mão. O valor NUNCA é
@@ -84,6 +94,9 @@ export async function GET() {
       ok,
       ambiente,
       plataforma,
+      // Para onde o SC-02 vai consultar. Erro aqui é silencioso: a consulta
+      // "funciona" e devolve a página errada.
+      portaisDosOrgaos: enderecoDosOrgaos(),
       banco,
       autenticacao,
       // Ajuda a saber se o deploy que respondeu é o que você acabou de publicar.
@@ -114,6 +127,14 @@ async function verificarBanco() {
       detalhe: "não foi possível consultar o banco",
       causa: semCredenciais(erro instanceof Error ? erro.message : String(erro)),
     };
+  }
+}
+
+function enderecoDosOrgaos(): string {
+  try {
+    return baseDosOrgaos();
+  } catch (erro) {
+    return `não configurado: ${erro instanceof Error ? erro.message : String(erro)}`;
   }
 }
 

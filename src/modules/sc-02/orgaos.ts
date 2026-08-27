@@ -58,10 +58,17 @@ export function baseDosOrgaos(): string {
     return configurada;
   }
 
-  // Na Vercel a aplicação não conhece a própria URL pública por padrão.
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}/api/fake/orgaos`;
-  }
+  // O portal simulado é servido pela própria aplicação, então ela precisa
+  // saber o seu endereço público.
+  //
+  // A URL de produção vem primeiro de propósito: VERCEL_URL é o endereço
+  // específico daquele deploy, que pode exigir autenticação da plataforma — e
+  // aí a consulta recebe uma página de login em vez da resposta do órgão,
+  // registrada como "formato que não reconhecemos". Foi o que aconteceu.
+  const dominio =
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+
+  if (dominio) return `https://${dominio}/api/fake/orgaos`;
 
   return "http://127.0.0.1:3000/api/fake/orgaos";
 }
