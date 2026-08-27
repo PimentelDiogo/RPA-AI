@@ -1,0 +1,53 @@
+# Cron externo do portal.
+#
+# As automações precisam rodar sozinhas, sem ninguém logado. Numa hospedagem
+# serverless não há processo em segundo plano para manter, e o plano gratuito da
+# Vercel limita o cron próprio a uma execução por dia — insuficiente para o que
+# o catálogo pede. Então o relógio mora aqui, e a aplicação só expõe o tick.
+#
+# Segredos necessários no repositório (Settings → Secrets → Actions):
+#   PORTAL_URL       https://<portal>.vercel.app
+#   SCHEDULER_TOKEN  o mesmo valor da variável de ambiente do portal
+name: Agendador
+
+on:
+  schedule:
+    # A cada 15 minutos. O cron do GitHub Actions é sempre em UTC; o horário de
+    # cada automação é decidido dentro do portal, no fuso America/Sao_Paulo.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  # Duas rodadas simultâneas disparariam a mesma automação duas vezes.
+  group: agendador
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Disparar o tick do agendador
+        env:
+          PORTAL_URL: ${{ secrets.PORTAL_URL }}
+          SCHEDULER_TOKEN: ${{ secrets.SCHEDULER_TOKEN }}
+        run: |
+          if [ -z "$PORTAL_URL" ] || [ -z "$SCHEDULER_TOKEN" ]; then
+            echo "::error::Configure os segredos PORTAL_URL e SCHEDULER_TOKEN."
+            exit 1
+          fi
+
+          codigo=$(curl -sS -o resposta.json -w "%{http_code}" \
+            --max-time 300 \
+            -X POST "$PORTAL_URL/api/scheduler/tick" \
+            -H "Authorization: Bearer $SCHEDULER_TOKEN")
+
+          echo "HTTP $codigo"
+          cat resposta.json
+          echo
+
+          # O token nunca é ecoado, nem em falha: o log do Actions é público.
+          if [ "$codigo" != "200" ]; then
+            echo "::error::O tick respondeu $codigo."
+            exit 1
+          fi

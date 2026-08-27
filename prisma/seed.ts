@@ -124,9 +124,36 @@ async function semearClientes() {
   console.log(`[seed] ${CLIENTES.length} clientes`);
 }
 
+/**
+ * Agendamento de cada módulo. A frequência sai do SDD do módulo, não do
+ * catálogo: o catálogo descreve a rotina manual de hoje ("mensal"), e o que se
+ * automatiza costuma valer a pena rodar mais vezes.
+ */
+const AGENDAMENTOS = [
+  { modulo: "SC-01", cron: "0 9 * * *" },
+  { modulo: "SC-02", cron: "0 6 * * *" },
+  { modulo: "SC-05", cron: "0 7 * * *" },
+  { modulo: "SC-20", cron: "0 8 * * *" },
+] as const;
+
+async function semearAgendamentos() {
+  for (const agendamento of AGENDAMENTOS) {
+    await prisma.agendamento.upsert({
+      where: { modulo: agendamento.modulo },
+      create: agendamento,
+      // Não sobrescreve proximaExecucaoEm: rodar o seed de novo não pode
+      // reprogramar o que o agendador já calculou.
+      update: { cron: agendamento.cron },
+    });
+  }
+
+  console.log(`[seed] ${AGENDAMENTOS.length} agendamentos`);
+}
+
 async function main() {
   await semearUsuarios();
   await semearClientes();
+  await semearAgendamentos();
 }
 
 main()

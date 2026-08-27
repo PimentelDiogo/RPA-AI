@@ -11,6 +11,7 @@ export const bancoFake = {
   execucoes: [] as Registro[],
   itens: [] as Registro[],
   artefatos: [] as Registro[],
+  agendamentos: [] as Registro[],
 };
 
 let sequencia = 0;
@@ -48,6 +49,23 @@ vi.mock("@/lib/db", () => ({
         return registro;
       },
     },
+    agendamento: {
+      findMany: async () => bancoFake.agendamentos,
+      findUnique: async ({ where }: { where: { modulo: string } }) =>
+        bancoFake.agendamentos.find((a) => a.modulo === where.modulo) ?? null,
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { modulo: string };
+        data: Registro;
+      }) => {
+        const registro = bancoFake.agendamentos.find((a) => a.modulo === where.modulo);
+        if (!registro) throw new Error(`agendamento ${where.modulo} não existe`);
+        Object.assign(registro, data);
+        return registro;
+      },
+    },
   },
 }));
 
@@ -55,5 +73,6 @@ beforeEach(() => {
   bancoFake.execucoes.length = 0;
   bancoFake.itens.length = 0;
   bancoFake.artefatos.length = 0;
+  bancoFake.agendamentos.length = 0;
   sequencia = 0;
 });

@@ -105,6 +105,34 @@ vmIdleTimeout=-1
 | `npm run db:seed` | Popula o banco com massa sintética |
 | `npm run db:reset` | Recria o banco do zero e semeia |
 | `npm run db:studio` | Prisma Studio |
+| `npm test` | Suíte de regra de negócio (Vitest) |
+
+## Agendamento
+
+As automações rodam sob demanda **e** sozinhas. O relógio mora fora da aplicação:
+[`.github/workflows/agendador.yml`](.github/workflows/agendador.yml) chama
+`POST /api/scheduler/tick` a cada 15 minutos, e o portal decide o que venceu.
+
+A escolha é deliberada: numa hospedagem serverless não há processo em segundo plano
+para manter, e o plano gratuito da Vercel limita o cron próprio a uma execução por dia —
+insuficiente para o que o catálogo pede. Como efeito colateral, o agendamento fica
+visível no repositório como infraestrutura.
+
+O endpoint exige `Authorization: Bearer $SCHEDULER_TOKEN`; sem token configurado ele
+fica fechado, nunca aberto. Para disparar à mão em desenvolvimento:
+
+```bash
+curl -X POST http://localhost:3000/api/scheduler/tick   -H "Authorization: Bearer $SCHEDULER_TOKEN"
+```
+
+Para conferir a agenda como está no banco, em UTC e no fuso da operação:
+
+```bash
+npx tsx scripts/verificar-agenda.ts
+```
+
+Em produção, configure os segredos `PORTAL_URL` e `SCHEDULER_TOKEN` no repositório
+(Settings → Secrets → Actions).
 
 ## Configuração de ambiente
 
@@ -129,9 +157,11 @@ ler com confiança.
 │   ├── brand/             # logo da SheepContabil (seção 06 do enunciado)
 │   ├── SUPOSICOES.md      # o que foi assumido onde faltou contexto, e por quê
 │   └── USO-DE-IA.md       # declaração de uso de IA, exigida pelo enunciado
+├── .github/workflows/     # CI e o cron externo do agendador
 ├── prisma/
 │   ├── schema.prisma      # modelo de dados
 │   └── seed.ts            # massa sintética determinística
+├── scripts/               # utilitários de diagnóstico
 ├── prisma.config.ts       # configuração do Prisma CLI (Prisma 7)
 ├── docker-compose.yml     # Postgres local
 └── src/
