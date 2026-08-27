@@ -1,0 +1,45 @@
+import { OrgaoConsultado } from "@/generated/prisma/enums";
+
+/**
+ * Os órgãos consultados e como chegar a cada um.
+ *
+ * O enunciado cita "vários órgãos por cliente, o FGTS entre eles" e não lista o
+ * resto — estes quatro são a suposição registrada.
+ */
+
+export const ORGAOS_ATIVOS: OrgaoConsultado[] = [
+  OrgaoConsultado.RECEITA_FEDERAL,
+  OrgaoConsultado.FGTS,
+  OrgaoConsultado.PREVIDENCIA,
+  OrgaoConsultado.FAZENDA_ESTADUAL,
+];
+
+export const ROTULO_ORGAO: Record<OrgaoConsultado, string> = {
+  RECEITA_FEDERAL: "Receita Federal",
+  FGTS: "FGTS",
+  PREVIDENCIA: "Previdência",
+  FAZENDA_ESTADUAL: "Fazenda Estadual",
+};
+
+/** Caminho do órgão no portal simulado — e, no adapter real, no portal de verdade. */
+export const SLUG_ORGAO: Record<OrgaoConsultado, string> = {
+  RECEITA_FEDERAL: "receita-federal",
+  FGTS: "fgts",
+  PREVIDENCIA: "previdencia",
+  FAZENDA_ESTADUAL: "fazenda-estadual",
+};
+
+/**
+ * Base dos portais. Aponta para o simulado deste projeto; num ambiente com
+ * acesso real, cada órgão teria a sua própria URL e a sua própria credencial.
+ */
+export function baseDosOrgaos(): string {
+  if (process.env.ORGAOS_BASE_URL) return process.env.ORGAOS_BASE_URL;
+
+  // Na Vercel a aplicação não conhece a própria URL pública por padrão.
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}/api/fake/orgaos`;
+  }
+
+  return "http://127.0.0.1:3000/api/fake/orgaos";
+}

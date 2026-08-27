@@ -66,7 +66,7 @@ export const MODULOS: readonly Modulo[] = [
     resumo:
       "Consulta os órgãos por cliente, guarda cada tentativa e mostra quem está irregular, em qual órgão e há quanto tempo.",
     horasMes: 54,
-    disponivel: false,
+    disponivel: true,
   },
   {
     codigo: "SC-05",

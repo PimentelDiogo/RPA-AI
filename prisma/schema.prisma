@@ -82,6 +82,8 @@ model Cliente {
 
   certificados Certificado[]
   contatos     ContatoAviso[]
+  situacoes    SituacaoFiscal[]
+  tentativas   ConsultaTentativa[]
 
   @@index([razaoSocial])
   @@map("cliente")
@@ -332,4 +334,90 @@ model ConfiguracaoSc20 {
   atualizadoEm DateTime @updatedAt
 
   @@map("configuracao_sc20")
+}
+
+// ---------------------------------------------------------------------------
+// SC-02 — Painel de situação fiscal dos clientes
+// Projeto do módulo em SDD/SC-02/SDD.md
+// ---------------------------------------------------------------------------
+
+enum OrgaoConsultado {
+  RECEITA_FEDERAL
+  FGTS
+  PREVIDENCIA
+  FAZENDA_ESTADUAL
+}
+
+enum SituacaoApurada {
+  REGULAR
+  IRREGULAR
+  /// O órgão respondeu, mas disse que não pode informar agora. Diferente de
+  /// "não conseguimos perguntar", que não é situação — é ausência de leitura.
+  INDISPONIVEL
+}
+
+/// Como a consulta foi feita. Aparece no painel para que a origem do dado seja
+/// rastreável: cliente HTTP ou robô de navegador.
+enum OrigemConsulta {
+  HTTP
+  PLAYWRIGHT
+}
+
+/// A última leitura **bem-sucedida** de cada par cliente × órgão.
+///
+/// Existe separada de `ConsultaTentativa` por causa da armadilha que o
+/// enunciado registra neste processo: consulta que falhou não pode sumir, e
+/// falha nenhuma sobrescreve o que se sabia antes. Com uma tabela só, ninguém
+/// distinguiria "o cliente está irregular" de "o robô não conseguiu perguntar".
+model SituacaoFiscal {
+  id        String          @id @default(cuid())
+  cliente   Cliente         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  orgao     OrgaoConsultado
+
+  situacao SituacaoApurada
+  detalhe  String?
+
+  /// Quando esta leitura foi obtida. É o que permite mostrar a idade do dado —
+  /// "regular há 2 dias" diz mais do que "regular", e a planilha de hoje
+  /// "nasce vencida" justamente por não ter isso.
+  apuradaEm DateTime
+  origem    OrigemConsulta
+
+  atualizadoEm DateTime @updatedAt
+
+  @@unique([clienteId, orgao])
+  @@index([situacao])
+  @@map("situacao_fiscal")
+}
+
+/// Toda tentativa de consulta, a que deu certo e a que não.
+///
+/// É o registro que o enunciado cobra: "guarde a tentativa, o erro e a hora".
+model ConsultaTentativa {
+  id        String          @id @default(cuid())
+  cliente   Cliente         @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+  orgao     OrgaoConsultado
+
+  execucaoId String?
+
+  /// 1, 2, 3 — a mesma consulta é retentada com espera crescente.
+  tentativa Int
+  sucesso   Boolean
+
+  situacao      SituacaoApurada?
+  /// Mensagem legível para o operador quando não deu certo.
+  erro          String?
+  /// O que o órgão devolveu. Guardado para quando a resposta vier num formato
+  /// inesperado e alguém precisar entender o que aconteceu.
+  respostaBruta String?
+
+  origem     OrigemConsulta
+  duracaoMs  Int
+  iniciadaEm DateTime       @default(now())
+
+  @@index([clienteId, orgao, iniciadaEm(sort: Desc)])
+  @@index([sucesso])
+  @@map("consulta_tentativa")
 }

@@ -2,7 +2,7 @@
 
 > **Natureza:** RPA · **Complexidade:** Alta · **Frequência:** Mensal
 > **Setor:** Processos · **Medição do mapeamento interno:** 54 h/mês
-> **Estado:** especificado, implementação pendente
+> **Estado:** implementado e no ar em https://rpa-ai.vercel.app/modulos/sc-02 — o adapter Playwright entra numa branch própria
 
 ---
 
@@ -73,7 +73,7 @@ E, porque a planilha de hoje "nasce vencida", o painel sempre mostra **a idade d
 |------|----------|----------|------------|
 | `ConsultaOrgao` | `consultar(cliente, orgao): Promise<Situacao>` | `orgao-http` e `orgao-playwright` | **A credencial e o certificado digital entram aqui** |
 
-**Órgãos simulados servidos pelo próprio repositório** em `/api/_fake/orgaos/*`: páginas
+**Órgãos simulados servidos pelo próprio repositório** em `/api/fake/orgaos/*`: páginas
 HTML com formulário, que reproduzem o mundo real de propósito — latência variável,
 timeout, indisponibilidade e sessão que expira, injetados por seed determinístico (mesmo
 cliente, mesmo comportamento, para a demonstração ser repetível).
@@ -189,7 +189,7 @@ npm run dev
 ```
 
 O portal-fake dos órgãos sobe junto com a aplicação, em
-`http://localhost:3000/api/_fake/orgaos`. Pode abrir no navegador: é uma página HTML com
+`http://localhost:3000/api/fake/orgaos`. Pode abrir no navegador: é uma página HTML com
 formulário, de propósito.
 
 ### 9.2 Teste automatizado
@@ -233,9 +233,9 @@ resultado. Rode com `--headed` para assistir — é o que se mostra na apresenta
 O portal-fake aceita instrução por query, para a demonstração não depender de sorte:
 
 ```bash
-curl "http://localhost:3000/api/_fake/orgaos/fgts?cnpj=41688555000155&simular=timeout"
-curl "http://localhost:3000/api/_fake/orgaos/receita?cnpj=41688555000155&simular=indisponivel"
-curl "http://localhost:3000/api/_fake/orgaos/receita?cnpj=41688555000155&simular=sessao-expirada"
+curl "http://localhost:3000/api/fake/orgaos/fgts?cnpj=41688555000155&simular=timeout"
+curl "http://localhost:3000/api/fake/orgaos/receita?cnpj=41688555000155&simular=indisponivel"
+curl "http://localhost:3000/api/fake/orgaos/receita?cnpj=41688555000155&simular=sessao-expirada"
 ```
 
 ### 9.6 Teste do disparo agendado

@@ -1,6 +1,6 @@
 # SC-05 — contrato do módulo
 
-Vale para `SDD/SC-05/`, `src/modules/sc-05/`, `src/app/api/_fake/sistemas/` e as tabelas
+Vale para `SDD/SC-05/`, `src/modules/sc-05/`, `src/app/api/fake/sistemas/` e as tabelas
 `BloqueioCliente`, `SagaBloqueio` e `PassoSaga`.
 Projeto completo em [`SDD.md`](SDD.md) · Contrato geral em [`../../CLAUDE.md`](../../CLAUDE.md).
 
