@@ -14,7 +14,10 @@ import { defineConfig, env } from "prisma/config";
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: env("DATABASE_URL"),
+    // Migrations usam a conexão direta quando ela existe. Em produção o
+    // DATABASE_URL aponta para o pooler de transações, que não aceita DDL:
+    // migrar por ele falha no meio, com o schema pela metade.
+    url: process.env.DIRECT_URL || env("DATABASE_URL"),
   },
   migrations: {
     seed: "tsx prisma/seed.ts",

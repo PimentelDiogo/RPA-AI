@@ -29,7 +29,9 @@ eram duas):
 | SC-20 | Vencimento de certificado digital | Controle sistematizado | 2 h/mês | a fazer |
 
 A escolha, o raciocínio por trás dela e as armadilhas de cada processo estão em
-[CLAUDE.md](CLAUDE.md), que é o contrato deste projeto.
+[CLAUDE.md](CLAUDE.md), que é o contrato deste projeto. O projeto detalhado de cada
+automação — especificação, decisões e **o passo a passo para testar** — está em
+[SDD/](SDD/), um diretório por módulo.
 
 ## Stack
 
@@ -43,7 +45,7 @@ A escolha, o raciocínio por trás dela e as armadilhas de cada processo estão 
 | Autenticação | Auth.js — credentials + sessão, perfis `admin` e `operador` |
 | Agendamento | Fila no Postgres + tick chamado por cron externo |
 | IA | `@anthropic-ai/sdk` (`claude-opus-5`) — apenas no SC-01 |
-| Hospedagem | Vercel (portal) + Neon (banco) |
+| Hospedagem | Vercel (portal) + Supabase (Postgres gerenciado) |
 
 O detalhamento por módulo — inclusive o que é determinístico e o que é IA — está
 na seção 8 do [CLAUDE.md](CLAUDE.md).
@@ -75,8 +77,13 @@ O Postgres do compose escuta na porta **5433** do host, para conviver com outro
 Postgres eventualmente já rodando na 5432.
 
 **Sem Docker:** aponte `DATABASE_URL` no `.env` para qualquer Postgres 15+ (um
-banco gratuito do [Neon](https://neon.tech) serve) e rode a partir do
-`npm run db:migrate`.
+banco gratuito do [Supabase](https://supabase.com) ou do [Neon](https://neon.tech)
+serve) e rode a partir do `npm run db:migrate`.
+
+**Em produção**, o portal usa o transaction pooler do Supabase e vive num schema
+próprio (`?schema=sheep`), porque o banco é compartilhado com outra aplicação. As
+migrations passam pelo session pooler, via `DIRECT_URL`: o pooler de transações não
+aceita DDL.
 
 **Docker no WSL, Node no Windows:** funciona, desde que o WSL esteja em rede
 espelhada. Crie `%USERPROFILE%\.wslconfig` com o conteúdo abaixo e rode
@@ -103,6 +110,34 @@ vmIdleTimeout=-1
 | `npm run db:seed` | Popula o banco com massa sintética |
 | `npm run db:reset` | Recria o banco do zero e semeia |
 | `npm run db:studio` | Prisma Studio |
+| `npm test` | Suíte de regra de negócio (Vitest) |
+
+## Agendamento
+
+As automações rodam sob demanda **e** sozinhas. O relógio mora fora da aplicação:
+[`.github/workflows/agendador.yml`](.github/workflows/agendador.yml) chama
+`POST /api/scheduler/tick` a cada 15 minutos, e o portal decide o que venceu.
+
+A escolha é deliberada: numa hospedagem serverless não há processo em segundo plano
+para manter, e o plano gratuito da Vercel limita o cron próprio a uma execução por dia —
+insuficiente para o que o catálogo pede. Como efeito colateral, o agendamento fica
+visível no repositório como infraestrutura.
+
+O endpoint exige `Authorization: Bearer $SCHEDULER_TOKEN`; sem token configurado ele
+fica fechado, nunca aberto. Para disparar à mão em desenvolvimento:
+
+```bash
+curl -X POST http://localhost:3000/api/scheduler/tick   -H "Authorization: Bearer $SCHEDULER_TOKEN"
+```
+
+Para conferir a agenda como está no banco, em UTC e no fuso da operação:
+
+```bash
+npx tsx scripts/verificar-agenda.ts
+```
+
+Em produção, configure os segredos `PORTAL_URL` e `SCHEDULER_TOKEN` no repositório
+(Settings → Secrets → Actions).
 
 ## Configuração de ambiente
 
@@ -119,13 +154,19 @@ ler com confiança.
 ```
 .
 ├── CLAUDE.md              # contrato do projeto: regras de entrega, escopo, decisões
+├── SDD/                   # projeto de cada automação
+│   └── SC-XX/
+│       ├── SDD.md         # especificação, decisões e como testar
+│       └── CLAUDE.md      # o contrato que vale dentro daquele módulo
 ├── docs/
 │   ├── brand/             # logo da SheepContabil (seção 06 do enunciado)
 │   ├── SUPOSICOES.md      # o que foi assumido onde faltou contexto, e por quê
 │   └── USO-DE-IA.md       # declaração de uso de IA, exigida pelo enunciado
+├── .github/workflows/     # CI e o cron externo do agendador
 ├── prisma/
 │   ├── schema.prisma      # modelo de dados
 │   └── seed.ts            # massa sintética determinística
+├── scripts/               # utilitários de diagnóstico
 ├── prisma.config.ts       # configuração do Prisma CLI (Prisma 7)
 ├── docker-compose.yml     # Postgres local
 └── src/

@@ -230,6 +230,7 @@ Exigida pelo enunciado ("só declare o que usou e onde"). Manter em `docs/USO-DE
 
 ## 9. Diretrizes para o agente (Claude) neste repositório
 
+0. **Cada módulo tem o seu documento de projeto em `SDD/SC-XX/`** — `SDD.md` com a especificação e o roteiro de teste, `CLAUDE.md` com o contrato daquele módulo. Ler antes de mexer no módulo; manter atualizado junto com o código.
 1. **Antes de decidir qualquer regra de negócio, releia a descrição do processo no PDF.** Não inventar requisito que o enunciado não pede; não ignorar a linha "Atenção" — é onde está a armadilha avaliada.
 2. **Toda suposição vira uma linha em `docs/SUPOSICOES.md`** no mesmo commit em que a decisão entra no código.
 3. **Fronteira externa nunca é chamada direto.** Sempre `port` (interface) + `adapter` mock. O adapter real fica como stub documentado.
@@ -269,3 +270,13 @@ Natureza é sugestão; complexidade é referência; a medição vem do mapeament
 | SC-20 | Vencimento de certificado digital | Controle | Baixa | Mensal | Processos | 2 h/mês |
 
 O detalhamento de cada processo (Hoje / Onde dói / Esperado / Atenção) está nas páginas 5–9 do PDF. **Ler o processo no PDF antes de implementá-lo.**
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

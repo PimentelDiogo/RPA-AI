@@ -1,8 +1,15 @@
 // Schema do portal SheepContabil.
 //
-// Bootstrap: apenas datasource e generator. O modelo de dados entra com o
-// núcleo do portal (usuários e perfis, módulos, Run/RunItem, agendamento) e
-// depois cresce por módulo — cada automação adiciona suas próprias tabelas.
+// Este arquivo tem duas camadas:
+//
+//   1. O núcleo do portal — pessoas, permissão e execução. Vale para todos os
+//      módulos: quem entrou, quem disparou o quê, quando, com que resultado.
+//   2. O domínio compartilhado — o cliente da contabilidade, sobre o qual todas
+//      as automações operam.
+//
+// Cada automação acrescenta suas próprias tabelas na branch do seu módulo.
+// O catálogo de módulos NÃO é tabela: vive em código (src/modules/catalogo.ts),
+// porque é o registro do que foi implementado, não um dado que a operação edita.
 
 generator client {
   provider = "prisma-client"
@@ -11,4 +18,201 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Pessoas e permissão
+// ---------------------------------------------------------------------------
+
+/// Perfis exigidos pelo enunciado: o administrador enxerga tudo, o operador
+/// enxerga apenas os módulos da área dele.
+enum Perfil {
+  ADMIN
+  OPERADOR
+}
+
+/// Setores da SheepContabil que aparecem no catálogo de processos. É por aqui
+/// que se decide quais módulos um operador enxerga.
+enum Area {
+  CONTABIL
+  FISCAL
+  PROCESSOS
+  DEPARTAMENTO_PESSOAL
+  SOCIETARIO
+  TECNOLOGIA
+  ATENDIMENTO
+  BPO_SAUDE
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  nome         String
+  /// Hash argon2id. Senha em claro não existe em lugar nenhum do sistema.
+  senhaHash    String
+  perfil       Perfil   @default(OPERADOR)
+  /// Áreas que o operador enxerga. Ignorado para ADMIN, que enxerga tudo.
+  areas        Area[]   @default([])
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  execucoes Execucao[]
+
+  @@map("usuario")
+}
+
+// ---------------------------------------------------------------------------
+// Domínio compartilhado
+// ---------------------------------------------------------------------------
+
+/// Cliente da contabilidade. Massa 100% sintética: CNPJ fictício, válido apenas
+/// em formato. Todas as automações operam sobre esta base.
+model Cliente {
+  id           String   @id @default(cuid())
+  /// Somente dígitos, 14 posições.
+  cnpj         String   @unique
+  razaoSocial  String
+  nomeFantasia String?
+  municipio    String
+  uf           String   @db.Char(2)
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@index([razaoSocial])
+  @@map("cliente")
+}
+
+// ---------------------------------------------------------------------------
+// Execução — o núcleo que todo módulo reaproveita
+// ---------------------------------------------------------------------------
+
+/// Como a execução começou. O enunciado exige as duas: sob demanda e sozinha,
+/// na frequência que o catálogo indica.
+enum Disparo {
+  MANUAL
+  AGENDADO
+}
+
+enum StatusExecucao {
+  EM_EXECUCAO
+  SUCESSO
+  /// Terminou, mas com itens que falharam. Distinguir isso de SUCESSO é o que
+  /// impede uma consulta que falhou de sumir do painel.
+  SUCESSO_PARCIAL
+  FALHA
+}
+
+/// Uma rodada de um módulo. Responde as quatro perguntas que o enunciado cobra
+/// do histórico: quando, quanto durou, quem disparou e qual foi o resultado.
+model Execucao {
+  id     String @id @default(cuid())
+  /// Código do catálogo: SC-01, SC-02, SC-05, SC-20. Referencia o módulo
+  /// declarado em código, não uma tabela.
+  modulo String
+
+  disparo Disparo
+  status  StatusExecucao @default(EM_EXECUCAO)
+
+  iniciadaEm   DateTime  @default(now())
+  finalizadaEm DateTime?
+  /// Duração em milissegundos, gravada no fim. Redundante com as datas de
+  /// propósito: a listagem do histórico ordena e filtra por ela sem recalcular.
+  duracaoMs    Int?
+
+  /// Nulo quando o disparo foi agendado — nesse caso não há pessoa por trás.
+  disparadoPor   Usuario? @relation(fields: [disparadoPorId], references: [id], onDelete: SetNull)
+  disparadoPorId String?
+
+  /// Mensagem para o operador ler, em português e sem jargão. Stack trace, se
+  /// houver, vai em detalheTecnico — nunca na tela como causa.
+  erro           String?
+  detalheTecnico String?
+
+  /// Resumo que o módulo escreve para a listagem ("42 certificados, 3 avisos").
+  resumo String?
+
+  itens ExecucaoItem[]
+
+  @@index([modulo, iniciadaEm(sort: Desc)])
+  @@index([status])
+  @@map("execucao")
+}
+
+enum StatusItem {
+  SUCESSO
+  FALHA
+  /// Não foi possível concluir e o item precisa de olho humano antes de seguir.
+  CONFERENCIA
+  IGNORADO
+}
+
+/// O item a item de uma execução. É o que permite dizer *o que* falhou dentro
+/// de uma rodada que, no geral, funcionou.
+model ExecucaoItem {
+  id         String   @id @default(cuid())
+  execucao   Execucao @relation(fields: [execucaoId], references: [id], onDelete: Cascade)
+  execucaoId String
+
+  /// Identificação legível do item na tela: nome do cliente, órgão, arquivo.
+  referencia String
+  status     StatusItem
+  /// Mensagem legível quando o item não terminou bem.
+  mensagem   String?
+  /// Dados específicos do módulo sobre este item.
+  dados      Json?
+
+  registradoEm DateTime @default(now())
+
+  @@index([execucaoId])
+  @@map("execucao_item")
+}
+
+enum TipoArtefato {
+  ARQUIVO
+  TABELA
+  REGISTRO_DE_ENVIO
+}
+
+/// A saída visível que o enunciado exige: arquivo para download, tabela ou o
+/// registro do que foi enviado.
+model Artefato {
+  id         String @id @default(cuid())
+  execucaoId String
+
+  tipo     TipoArtefato
+  nome     String
+  mimeType String?
+  /// Caminho no FileStorage quando o artefato é arquivo.
+  caminho  String?
+  /// Conteúdo quando o artefato é tabela ou registro de envio.
+  conteudo Json?
+  criadoEm DateTime     @default(now())
+
+  @@index([execucaoId])
+  @@map("artefato")
+}
+
+// ---------------------------------------------------------------------------
+// Agendamento — as automações rodam sem ninguém logado
+// ---------------------------------------------------------------------------
+
+/// Agenda de um módulo. O tick do agendador lê esta tabela, decide o que está
+/// vencido e enfileira. Uma linha por módulo agendável.
+model Agendamento {
+  id     String @id @default(cuid())
+  modulo String @unique
+
+  /// Expressão de frequência em cron, no fuso America/Sao_Paulo.
+  cron  String
+  ativo Boolean @default(true)
+
+  ultimaExecucaoEm  DateTime?
+  proximaExecucaoEm DateTime?
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  @@map("agendamento")
 }
