@@ -80,6 +80,9 @@ model Cliente {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
+  certificados Certificado[]
+  contatos     ContatoAviso[]
+
   @@index([razaoSocial])
   @@map("cliente")
 }
@@ -215,4 +218,118 @@ model Agendamento {
   atualizadoEm DateTime @updatedAt
 
   @@map("agendamento")
+}
+
+// ---------------------------------------------------------------------------
+// SC-20 — Vencimento de certificado digital
+// Projeto do módulo em SDD/SC-20/SDD.md
+// ---------------------------------------------------------------------------
+
+enum TipoCertificado {
+  A1
+  A3
+}
+
+/// Faixas do painel. Existem como enum, e não como cálculo solto na tela,
+/// porque a régua de avisos compara faixas entre execuções: é a mudança de
+/// faixa que dispara um aviso novo, não a passagem do tempo.
+enum FaixaVencimento {
+  VENCIDO
+  ATE_15
+  ATE_30
+  ATE_60
+}
+
+model Certificado {
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  /// Quem responde pelo certificado — é a pessoa que precisa ser acionada.
+  titular    String
+  tipo       TipoCertificado
+  emissor    String
+  /// Só a data importa; hora não existe em vencimento de certificado.
+  validade   DateTime        @db.Date
+  observacao String?
+  /// Certificado renovado fica inativo, não some: o histórico de avisos
+  /// continua fazendo sentido.
+  ativo      Boolean         @default(true)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  avisos AvisoCertificado[]
+
+  @@index([clienteId])
+  @@index([validade])
+  @@map("certificado")
+}
+
+/// Quem é avisado. O destinatário é interno: o enunciado pede aviso "para quem
+/// precisa acionar o cliente", não para o cliente.
+model ContatoAviso {
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  nome  String
+  email String
+  ativo Boolean @default(true)
+
+  criadoEm DateTime @default(now())
+
+  avisos AvisoCertificado[]
+
+  @@index([clienteId])
+  @@map("contato_aviso")
+}
+
+/// A régua de avisos.
+///
+/// Guarda o que foi comunicado e o que foi deliberadamente calado. A supressão
+/// é registro de primeira classe: sem ela ninguém sabe se o sistema não avisou
+/// porque decidiu não repetir, ou porque falhou.
+model AvisoCertificado {
+  id            String      @id @default(cuid())
+  certificado   Certificado @relation(fields: [certificadoId], references: [id], onDelete: Cascade)
+  certificadoId String
+
+  /// Nulo quando é registro de supressão: não houve destinatário.
+  contato   ContatoAviso? @relation(fields: [contatoId], references: [id], onDelete: SetNull)
+  contatoId String?
+
+  /// Qual rodada gerou este registro.
+  execucaoId String?
+
+  /// É esta faixa que a execução seguinte compara para decidir se algo mudou.
+  /// Guardar só a data do último aviso não responde "mudou alguma coisa?".
+  faixa         FaixaVencimento
+  /// Congelado no momento do aviso: dias restantes mudam todo dia.
+  diasRestantes Int
+
+  /// A mensagem exata que foi (ou seria) enviada. Como nada sai da aplicação,
+  /// esta coluna é o próprio outbox mostrado no portal.
+  conteudo String
+
+  registradoEm    DateTime @default(now())
+  suprimido       Boolean  @default(false)
+  motivoSupressao String?
+
+  @@index([certificadoId, registradoEm(sort: Desc)])
+  @@index([suprimido])
+  @@map("aviso_certificado")
+}
+
+/// Configuração do módulo. Linha única: a janela de alerta é regra de negócio
+/// que a operação ajusta, não constante de código.
+model ConfiguracaoSc20 {
+  id String @id @default("unica")
+
+  /// Quantos dias antes do vencimento o certificado entra no painel e na régua.
+  janelaDias Int @default(60)
+
+  atualizadoEm DateTime @updatedAt
+
+  @@map("configuracao_sc20")
 }

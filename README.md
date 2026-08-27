@@ -41,7 +41,7 @@ eram duas):
 | SC-01 | Conversão de extrato bancário para OFX | Agente de IA | 110 h/mês | a fazer |
 | SC-02 | Painel de situação fiscal dos clientes | RPA | 54 h/mês | a fazer |
 | SC-05 | Bloqueio e desbloqueio de clientes inadimplentes | RPA | 11 h/mês | a fazer |
-| SC-20 | Vencimento de certificado digital | Controle sistematizado | 2 h/mês | a fazer |
+| SC-20 | Vencimento de certificado digital | Controle sistematizado | 2 h/mês | **no ar** |
 
 A escolha, o raciocínio por trás dela e as armadilhas de cada processo estão em
 [CLAUDE.md](CLAUDE.md), que é o contrato deste projeto. O projeto detalhado de cada

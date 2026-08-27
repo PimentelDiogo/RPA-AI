@@ -23,5 +23,27 @@ mesmo commit em que a decisão entra no código.
 
 ## Por automação
 
-_As suposições de SC-01, SC-02, SC-05 e SC-20 entram aqui conforme cada módulo é
-implementado._
+### SC-20 — Vencimento de certificado digital
+
+- **[SC-20]** Assumi que o certificado tem titular, tipo (A1/A3), emissor e validade,
+  porque é o conjunto mínimo que a planilha descrita no enunciado teria — sem titular
+  não há quem acionar.
+- **[SC-20]** Assumi que as faixas do painel são vencido, ≤15, ≤30 e ≤60 dias, porque o
+  enunciado pede o painel dos próximos 60 dias e "quanto tempo resta": faixas dão a
+  leitura de relance que ele cobra.
+- **[SC-20]** Assumi que **mudança de faixa** é o gatilho do aviso, e não a passagem de
+  tempo, porque o enunciado diz para mostrar "o que mudou desde o último aviso" — 45
+  para 44 dias não é mudança, cruzar para ≤30 é.
+- **[SC-20]** Assumi que o destinatário é um contato interno da SheepContabil, não o
+  cliente final, porque o enunciado fala em avisar "quem precisa acionar o cliente".
+- **[SC-20]** Assumi que a verificação roda **diariamente**, embora o catálogo diga
+  mensal, porque mensal é a frequência da revisão manual de hoje — que é o problema:
+  um certificado que vence no dia 3 não pode esperar a revisão do dia 30.
+- **[SC-20]** Assumi que a janela de alerta é configurável pela operação (30 a 120 dias,
+  padrão 60), porque quem trabalha com certificado sabe melhor que o desenvolvedor
+  quanta antecedência resolve.
+- **[SC-20]** Assumi que cliente sem contato cadastrado é **falha de item**, não erro de
+  execução, porque é dado faltando: a rodada continua nos demais e o operador vê
+  exatamente o que precisa cadastrar.
+
+_As suposições de SC-01, SC-02 e SC-05 entram aqui conforme cada módulo é implementado._

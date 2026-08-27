@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { Session } from "next-auth";
 
 import { auth } from "@/lib/auth";
@@ -40,7 +40,9 @@ export async function exigirAcessoAoModulo(codigo: string): Promise<{
   const modulo = MODULOS.find((item) => item.codigo === codigo);
 
   if (!modulo || !podeVerModulo(sessao, modulo)) {
-    redirect("/nao-encontrado");
+    // 404 e não 403: negar com "sem permissão" confirmaria para o operador
+    // que o módulo existe fora da área dele.
+    notFound();
   }
 
   return { sessao, modulo };

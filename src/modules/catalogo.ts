@@ -88,7 +88,7 @@ export const MODULOS: readonly Modulo[] = [
     resumo:
       "Base de certificados por cliente, painel dos próximos 60 dias e aviso que só repete o que mudou desde a última vez.",
     horasMes: 2,
-    disponivel: false,
+    disponivel: true,
   },
 ] as const;
 

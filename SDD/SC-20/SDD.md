@@ -2,7 +2,7 @@
 
 > **Natureza:** Controle sistematizado · **Complexidade:** Baixa · **Frequência:** Mensal
 > **Setor:** Processos · **Medição do mapeamento interno:** 2 h/mês
-> **Estado:** especificado, implementação pendente
+> **Estado:** implementado e no ar em https://rpa-ai.vercel.app/modulos/sc-20
 
 ---
 
@@ -230,10 +230,10 @@ npm run dev
 É o que prova a armadilha. Roda sem banco e sem servidor:
 
 ```bash
-npx vitest run tests/sc-20-regua-avisos.test.ts
+npx vitest run tests/sc-20-regua.test.ts
 ```
 
-Casos cobertos:
+Casos cobertos (14 no total, entre cálculo de prazo, classificação e régua):
 
 | Caso | Esperado |
 |------|----------|
