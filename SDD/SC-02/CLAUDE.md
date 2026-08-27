@@ -1,6 +1,6 @@
 # SC-02 — contrato do módulo
 
-Vale para `SDD/SC-02/`, `src/modules/sc-02/`, `src/app/api/_fake/orgaos/` e as tabelas
+Vale para `SDD/SC-02/`, `src/modules/sc-02/`, `src/app/api/fake/orgaos/` e as tabelas
 `SituacaoFiscal` e `ConsultaTentativa`.
 Projeto completo em [`SDD.md`](SDD.md) · Contrato geral em [`../../CLAUDE.md`](../../CLAUDE.md).
 

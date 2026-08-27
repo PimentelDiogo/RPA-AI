@@ -195,7 +195,7 @@ Restrições que a stack precisa atender: autenticação com sessão e dois perf
 | Peça | Escolha |
 |------|---------|
 | Fronteira | Port `ConsultaOrgao { consultar(cliente, orgao): Promise<Situacao> }` |
-| Portal-fake | **Órgãos simulados servidos pelo próprio repo** (`/api/_fake/orgaos/*`): páginas HTML com formulário, latência, timeout, indisponibilidade e sessão que expira — injetados por seed determinístico |
+| Portal-fake | **Órgãos simulados servidos pelo próprio repo** (`/api/fake/orgaos/*`): páginas HTML com formulário, latência, timeout, indisponibilidade e sessão que expira — injetados por seed determinístico |
 | Adapter default (cloud) | `orgao-http` — cliente HTTP contra o portal-fake. É o que roda na URL pública |
 | Adapter RPA real | `orgao-playwright` — **Playwright de verdade** navegando o portal-fake (roda local e no CI). É a peça que mostra "aqui entra o portal do órgão de verdade, aqui entra a credencial" |
 | Resiliência | Fila por (cliente × órgão), retry com backoff, limite de concorrência. **Toda tentativa é persistida**: hora, órgão, erro, resposta |

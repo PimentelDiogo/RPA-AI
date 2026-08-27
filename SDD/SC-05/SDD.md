@@ -242,7 +242,7 @@ trocar a troca de responsável por uma desativação de cliente.
 O mock aceita instrução para falhar num sistema específico:
 
 ```bash
-curl -X POST http://localhost:3000/api/_fake/sistemas/configurar \
+curl -X POST http://localhost:3000/api/fake/sistemas/configurar \
   -H "Content-Type: application/json" \
   -d '{"sistema":"PortalCliente","falhar":true}'
 ```
@@ -256,7 +256,7 @@ curl -X POST http://localhost:3000/api/_fake/sistemas/configurar \
    - A tela oferece **Retomar** e **Reverter**, e **nada** foi decidido sozinho.
 3. Restaure o sistema e clique em **Retomar**:
    ```bash
-   curl -X POST http://localhost:3000/api/_fake/sistemas/configurar \
+   curl -X POST http://localhost:3000/api/fake/sistemas/configurar \
      -H "Content-Type: application/json" -d '{"sistema":"PortalCliente","falhar":false}'
    ```
    A saga continua **do passo 2**, sem repetir o passo 1 — é o teste de idempotência.

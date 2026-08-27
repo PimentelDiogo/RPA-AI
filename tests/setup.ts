@@ -12,6 +12,9 @@ export const bancoFake = {
   itens: [] as Registro[],
   artefatos: [] as Registro[],
   agendamentos: [] as Registro[],
+  clientes: [] as Registro[],
+  situacoes: [] as Registro[],
+  tentativas: [] as Registro[],
 };
 
 let sequencia = 0;
@@ -49,6 +52,52 @@ vi.mock("@/lib/db", () => ({
         return registro;
       },
     },
+    cliente: {
+      findMany: async () => bancoFake.clientes,
+    },
+    consultaTentativa: {
+      create: async ({ data }: { data: Registro }) => {
+        const registro = { id: `tent-${++sequencia}`, ...data };
+        bancoFake.tentativas.push(registro);
+        return registro;
+      },
+    },
+    situacaoFiscal: {
+      findUnique: async ({
+        where,
+      }: {
+        where: { clienteId_orgao: { clienteId: string; orgao: string } };
+      }) =>
+        bancoFake.situacoes.find(
+          (s) =>
+            s.clienteId === where.clienteId_orgao.clienteId &&
+            s.orgao === where.clienteId_orgao.orgao,
+        ) ?? null,
+      upsert: async ({
+        where,
+        create,
+        update,
+      }: {
+        where: { clienteId_orgao: { clienteId: string; orgao: string } };
+        create: Registro;
+        update: Registro;
+      }) => {
+        const existente = bancoFake.situacoes.find(
+          (s) =>
+            s.clienteId === where.clienteId_orgao.clienteId &&
+            s.orgao === where.clienteId_orgao.orgao,
+        );
+
+        if (existente) {
+          Object.assign(existente, update);
+          return existente;
+        }
+
+        const registro = { id: `sit-${++sequencia}`, ...create };
+        bancoFake.situacoes.push(registro);
+        return registro;
+      },
+    },
     agendamento: {
       findMany: async () => bancoFake.agendamentos,
       findUnique: async ({ where }: { where: { modulo: string } }) =>
@@ -74,5 +123,8 @@ beforeEach(() => {
   bancoFake.itens.length = 0;
   bancoFake.artefatos.length = 0;
   bancoFake.agendamentos.length = 0;
+  bancoFake.clientes.length = 0;
+  bancoFake.situacoes.length = 0;
+  bancoFake.tentativas.length = 0;
   sequencia = 0;
 });

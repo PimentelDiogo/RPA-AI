@@ -18,9 +18,14 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import {
   Area,
   FaixaVencimento,
+  OrgaoConsultado,
+  OrigemConsulta,
   Perfil,
+  SituacaoApurada,
   TipoCertificado,
 } from "../src/generated/prisma/enums";
+import { comportamentoDe } from "../src/app/api/fake/orgaos/comportamento";
+import { SLUG_ORGAO } from "../src/modules/sc-02/orgaos";
 import { gerarHashDeSenha } from "../src/lib/auth/senha";
 
 const connectionString = process.env.DATABASE_URL;
@@ -268,11 +273,116 @@ async function semearCertificados() {
   );
 }
 
+/**
+ * Situação fiscal do SC-02.
+ *
+ * O enunciado exige que o portal chegue com dado dentro, não vazio — e um
+ * painel de situação fiscal em branco não demonstra nada. A massa é derivada do
+ * **mesmo** comportamento determinístico que o portal simulado usa, então o que
+ * o seed grava e o que uma execução real apura coincidem: a demonstração não
+ * "muda de assunto" quando alguém clica em Consultar agora.
+ *
+ * As leituras recebem idades diferentes de propósito: é a idade do dado que
+ * mostra que a planilha de hoje "nasce vencida".
+ */
+async function semearSituacaoFiscal() {
+  await prisma.consultaTentativa.deleteMany();
+  await prisma.situacaoFiscal.deleteMany();
+
+  const clientes = await prisma.cliente.findMany({
+    select: { id: true, cnpj: true },
+  });
+
+  const orgaos = Object.values(OrgaoConsultado);
+  let leituras = 0;
+  let falhas = 0;
+
+  for (const [indiceCliente, cliente] of clientes.entries()) {
+    for (const [indiceOrgao, orgao] of orgaos.entries()) {
+      const comportamento = comportamentoDe(cliente.cnpj, SLUG_ORGAO[orgao]);
+      // Entre 0 e 11 dias atrás: dá ao painel a variação de idade que ele
+      // precisa mostrar.
+      const idadeDias = (indiceCliente * 3 + indiceOrgao) % 12;
+      const quando = new Date(Date.now() - idadeDias * 24 * 60 * 60 * 1000);
+
+      const situacao =
+        comportamento.tipo === "regular"
+          ? SituacaoApurada.REGULAR
+          : comportamento.tipo === "irregular"
+            ? SituacaoApurada.IRREGULAR
+            : comportamento.tipo === "indisponivel"
+              ? SituacaoApurada.INDISPONIVEL
+              : null;
+
+      if (situacao) {
+        await prisma.situacaoFiscal.create({
+          data: {
+            clienteId: cliente.id,
+            orgao,
+            situacao,
+            detalhe:
+              comportamento.tipo === "irregular" ? comportamento.pendencia : null,
+            apuradaEm: quando,
+            origem: OrigemConsulta.HTTP,
+          },
+        });
+        await prisma.consultaTentativa.create({
+          data: {
+            clienteId: cliente.id,
+            orgao,
+            tentativa: 1,
+            sucesso: true,
+            situacao,
+            origem: OrigemConsulta.HTTP,
+            duracaoMs: 120 + idadeDias * 7,
+            iniciadaEm: quando,
+          },
+        });
+        leituras += 1;
+        continue;
+      }
+
+      // Os pares que o portal simulado derruba chegam com a tentativa falhada
+      // registrada — a faixa "não conseguimos consultar" nasce preenchida, como
+      // acontece na vida real.
+      const erro =
+        comportamento.tipo === "timeout"
+          ? "O portal do órgão não respondeu no tempo esperado."
+          : comportamento.tipo === "fora-do-ar"
+            ? "O portal do órgão está fora do ar."
+            : comportamento.tipo === "sessao-expirada"
+              ? "A sessão no portal expirou durante a consulta."
+              : "O portal respondeu num formato que não reconhecemos.";
+
+      for (const tentativa of [1, 2, 3]) {
+        await prisma.consultaTentativa.create({
+          data: {
+            clienteId: cliente.id,
+            orgao,
+            tentativa,
+            sucesso: false,
+            erro,
+            origem: OrigemConsulta.HTTP,
+            duracaoMs: 2500,
+            iniciadaEm: new Date(quando.getTime() + tentativa * 1000),
+          },
+        });
+      }
+      falhas += 1;
+    }
+  }
+
+  console.log(
+    `[seed] ${leituras} situações fiscais lidas, ${falhas} pares sem resposta`,
+  );
+}
+
 async function main() {
   await semearUsuarios();
   await semearClientes();
   await semearAgendamentos();
   await semearCertificados();
+  await semearSituacaoFiscal();
 }
 
 main()

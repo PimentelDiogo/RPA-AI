@@ -46,4 +46,26 @@ mesmo commit em que a decisão entra no código.
   execução, porque é dado faltando: a rodada continua nos demais e o operador vê
   exatamente o que precisa cadastrar.
 
-_As suposições de SC-01, SC-02 e SC-05 entram aqui conforme cada módulo é implementado._
+### SC-02 — Painel de situação fiscal
+
+- **[SC-02]** Assumi que os órgãos consultados são Receita Federal, FGTS, Previdência e
+  Fazenda Estadual, porque o enunciado cita "vários órgãos por cliente, o FGTS entre
+  eles" e não lista o resto.
+- **[SC-02]** Assumi três resultados possíveis — regular, irregular e indisponível —
+  porque é a leitura mínima que o painel precisa; certidão positiva com efeito de
+  negativa entraria como regular com observação.
+- **[SC-02]** Assumi que "o órgão respondeu que não pode informar" (indisponível) é
+  **leitura válida**, diferente de "não conseguimos perguntar", que é ausência de
+  leitura. A distinção é o que a armadilha do processo exige.
+- **[SC-02]** Assumi consulta por CNPJ, sem certificado digital, porque nenhum acesso
+  real é concedido. O adapter real exigiria o certificado, e o ponto está marcado no
+  código.
+- **[SC-02]** Assumi 3 tentativas com espera crescente e no máximo 4 consultas
+  simultâneas, porque portal de órgão cai e volta, e derruba quem martela.
+- **[SC-02]** Assumi espera de 400 ms na segunda tentativa, dobrando — bem menor do que
+  um portal real merece — porque a rodada inteira precisa caber numa invocação de função
+  serverless. O mecanismo é o que está sendo demonstrado, não a paciência.
+- **[SC-02]** Assumi execução **diária**, embora o catálogo diga mensal, porque o próprio
+  enunciado diz que "a planilha nasce vencida: no dia seguinte já não vale".
+
+_As suposições de SC-01 e SC-05 entram aqui conforme cada módulo é implementado._
