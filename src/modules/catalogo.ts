@@ -77,7 +77,7 @@ export const MODULOS: readonly Modulo[] = [
     resumo:
       "Executa a sequência de bloqueio nos sistemas que não se integram, mostra o que foi feito em cada um e sabe desfazer.",
     horasMes: 11,
-    disponivel: false,
+    disponivel: true,
   },
   {
     codigo: "SC-20",

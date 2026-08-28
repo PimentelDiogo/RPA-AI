@@ -2,7 +2,7 @@
 
 > **Natureza:** RPA · **Complexidade:** Média · **Frequência:** Sob demanda
 > **Setor:** Tecnologia · **Medição do mapeamento interno:** 11 h/mês
-> **Estado:** especificado, implementação pendente
+> **Estado:** implementado e no ar em https://rpa-ai.vercel.app/modulos/sc-05
 
 ---
 

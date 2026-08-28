@@ -93,4 +93,23 @@ mesmo commit em que a decisão entra no código.
   precisa ser estável entre reimportações e distinto entre lançamentos parecidos no
   mesmo dia.
 
-_As suposições de SC-05 entram aqui quando o módulo for implementado._
+### SC-05 — Bloqueio e desbloqueio de inadimplentes
+
+- **[SC-05]** Assumi três sistemas — financeiro, portal do cliente e sistema de tarefas —
+  porque o enunciado diz "vários sistemas" e detalha apenas o de tarefas.
+- **[SC-05]** Assumi que o marcador de bloqueado no sistema de tarefas é um responsável
+  fictício, e que o responsável original é guardado **por tarefa**: tarefas do mesmo
+  cliente podem ter donos diferentes, e devolver todas para uma pessoa só perderia
+  informação.
+- **[SC-05]** Assumi que falha parcial **para a sequência e não decide nada**: nem segue
+  para o próximo sistema, nem reverte sozinha. Quem decide é gente, com o que já foi
+  aplicado à vista. Mexer em sistema de cliente sem alguém mandar é como o problema
+  começa.
+- **[SC-05]** Assumi que o bloqueio é por cliente inteiro, nunca por serviço, porque o
+  enunciado fala em "cliente inadimplente" sem granularidade menor.
+- **[SC-05]** Assumi que motivo é **obrigatório** nas duas direções: é ação com efeito
+  sobre o cliente, e sem justificativa registrada ninguém sabe depois por que aconteceu.
+- **[SC-05]** Assumi que a verificação de consistência **aponta e não corrige**, porque
+  corrigir sozinha seria repetir o problema original, só que mais rápido.
+- **[SC-05]** Assumi que só o `admin` dispara bloqueio — o catálogo põe o processo no
+  setor de Tecnologia, e é ação com efeito sobre o cliente.
