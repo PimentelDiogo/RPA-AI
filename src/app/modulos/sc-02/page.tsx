@@ -1,3 +1,4 @@
+import { BotaoExecutar } from "@/components/botao-executar";
 import { Cabecalho } from "@/components/cabecalho";
 import { HistoricoExecucoes } from "@/components/historico-execucoes";
 import type { SituacaoApurada } from "@/generated/prisma/enums";
@@ -83,14 +84,11 @@ export default async function ModuloSc02() {
             ) : null}
           </div>
 
-          <form action={consultarAgora}>
-            <button
-              type="submit"
-              className="rounded bg-brand px-4 py-2.5 text-sm font-semibold text-brand-contrast transition-colors hover:bg-turquesa"
-            >
-              Consultar agora
-            </button>
-          </form>
+          <BotaoExecutar
+            acao={consultarAgora}
+            rotulo="Consultar agora"
+            ondeVerResultado="Os cartões, a lista de irregulares, a faixa “não conseguimos consultar” e as tentativas registradas, nesta mesma tela, já refletem esta rodada."
+          />
         </header>
 
         {/* ---------------------------------------------------------------- */}

@@ -1,3 +1,4 @@
+import { BotaoExecutar } from "@/components/botao-executar";
 import { Cabecalho } from "@/components/cabecalho";
 import { HistoricoExecucoes } from "@/components/historico-execucoes";
 import { FaixaVencimento } from "@/generated/prisma/enums";
@@ -73,14 +74,10 @@ export default async function ModuloSc20() {
             ) : null}
           </div>
 
-          <form action={executarAgora}>
-            <button
-              type="submit"
-              className="rounded bg-brand px-4 py-2.5 text-sm font-semibold text-brand-contrast transition-colors hover:bg-turquesa"
-            >
-              Executar agora
-            </button>
-          </form>
+          <BotaoExecutar
+            acao={executarAgora}
+            ondeVerResultado="O painel dos próximos 60 dias, o bloco “o que mudou desde o último aviso” e o histórico de avisos, nesta mesma tela, já refletem esta rodada."
+          />
         </header>
 
         {/* ---------------------------------------------------------------- */}
