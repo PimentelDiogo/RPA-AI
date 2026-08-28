@@ -86,6 +86,11 @@ model Cliente {
   situacoes    SituacaoFiscal[]
   tentativas   ConsultaTentativa[]
   extratos     ExtratoImportado[]
+  bloqueio     BloqueioCliente?
+  sagas        SagaBloqueio[]
+  financeiro   RegistroFinanceiro?
+  acessoPortal AcessoPortalCliente?
+  tarefas      TarefaCliente[]
 
   @@index([razaoSocial])
   @@map("cliente")
@@ -533,4 +538,160 @@ model Lancamento {
   @@index([extratoId, ordem])
   @@index([confianca])
   @@map("lancamento")
+}
+
+// ---------------------------------------------------------------------------
+// SC-05 — Bloqueio e desbloqueio de clientes inadimplentes
+// Projeto do módulo em SDD/SC-05/SDD.md
+// ---------------------------------------------------------------------------
+
+enum EstadoBloqueio {
+  LIVRE
+  BLOQUEADO
+  /// A sequência parou no meio: parte dos sistemas foi alterada, parte não.
+  /// É o estado que o processo manual produz sem ninguém perceber, e que aqui
+  /// fica visível e pede decisão.
+  PARCIAL
+  REVERTENDO
+}
+
+enum DirecaoSaga {
+  BLOQUEIO
+  DESBLOQUEIO
+}
+
+enum StatusPasso {
+  PENDENTE
+  APLICADO
+  FALHOU
+  COMPENSADO
+}
+
+/// Estado consolidado do cliente. Uma linha por cliente.
+model BloqueioCliente {
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String  @unique
+
+  estado EstadoBloqueio @default(LIVRE)
+  motivo String?
+
+  bloqueadoEm    DateTime?
+  desbloqueadoEm DateTime?
+  atualizadoEm   DateTime  @updatedAt
+
+  @@map("bloqueio_cliente")
+}
+
+/// Uma execução da sequência, num sentido ou no outro.
+///
+/// O desbloqueio não é outra rotina: é a **mesma** saga com direção invertida,
+/// compensando os passos na ordem contrária.
+model SagaBloqueio {
+  id         String  @id @default(cuid())
+  cliente    Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId  String
+  execucaoId String?
+
+  direcao   DirecaoSaga
+  motivo    String
+  concluida Boolean     @default(false)
+
+  criadaEm     DateTime  @default(now())
+  finalizadaEm DateTime?
+
+  passos PassoSaga[]
+
+  @@index([clienteId, criadaEm(sort: Desc)])
+  @@map("saga_bloqueio")
+}
+
+model PassoSaga {
+  id     String       @id @default(cuid())
+  saga   SagaBloqueio @relation(fields: [sagaId], references: [id], onDelete: Cascade)
+  sagaId String
+
+  ordem   Int
+  sistema String
+  acao    String
+  status  StatusPasso @default(PENDENTE)
+  /// Mensagem legível quando o passo não deu certo.
+  erro    String?
+
+  /// O que existia antes do passo ser aplicado. É o que permite desfazer para
+  /// o estado real, e não para um estado inventado — sem isto o desbloqueio
+  /// devolveria todas as tarefas para um responsável padrão.
+  estadoAnterior Json?
+
+  iniciadoEm  DateTime?
+  concluidoEm DateTime?
+
+  @@index([sagaId, ordem])
+  @@map("passo_saga")
+}
+
+// ---------------------------------------------------------------------------
+// Os três sistemas simulados. Cada um tem estado próprio e visível no portal —
+// é assim que a tela mostra "não sobrou sistema sem bloqueio".
+// ---------------------------------------------------------------------------
+
+/// Sistema financeiro: marca a inadimplência.
+model RegistroFinanceiro {
+  id           String    @id @default(cuid())
+  cliente      Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId    String    @unique
+  inadimplente Boolean   @default(false)
+  marcadoEm    DateTime?
+  atualizadoEm DateTime  @updatedAt
+
+  @@map("fake_registro_financeiro")
+}
+
+/// Portal do cliente: acesso liberado ou revogado.
+model AcessoPortalCliente {
+  id           String    @id @default(cuid())
+  cliente      Cliente   @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId    String    @unique
+  ativo        Boolean   @default(true)
+  revogadoEm   DateTime?
+  atualizadoEm DateTime  @updatedAt
+
+  @@map("fake_acesso_portal")
+}
+
+/// Sistema de tarefas.
+///
+/// **O cliente nunca é desativado aqui.** O que muda é o responsável de cada
+/// tarefa, que passa a ser o marcador de bloqueado — e o responsável original
+/// fica guardado, por tarefa, porque a maioria dos clientes renegocia depois e
+/// recriar o histórico dá mais trabalho.
+model TarefaCliente {
+  id        String  @id @default(cuid())
+  cliente   Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId String
+
+  titulo              String
+  responsavel         String
+  /// Preenchido enquanto o cliente está bloqueado; nulo quando não está.
+  responsavelOriginal String?
+  concluida           Boolean @default(false)
+
+  atualizadoEm DateTime @updatedAt
+
+  @@index([clienteId])
+  @@map("fake_tarefa_cliente")
+}
+
+/// Interruptor de falha dos sistemas simulados.
+///
+/// Existe para a demonstração de falha parcial não depender de sorte: liga-se
+/// a falha num sistema, dispara-se o bloqueio, e a saga para no meio.
+model FalhaSimulada {
+  id      String  @id @default(cuid())
+  sistema String  @unique
+  falhar  Boolean @default(false)
+
+  atualizadoEm DateTime @updatedAt
+
+  @@map("fake_falha_simulada")
 }

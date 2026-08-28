@@ -453,6 +453,54 @@ async function semearExtratos() {
   console.log(`[seed] ${importados} extratos bancários importados`);
 }
 
+/**
+ * Os três sistemas simulados do SC-05.
+ *
+ * Todo cliente começa livre: acesso liberado, sem marcação de inadimplência e
+ * com tarefas atribuídas a pessoas. É o estado normal, e é dele que a
+ * demonstração parte — bloquear na frente de quem avalia mostra os três
+ * sistemas mudando juntos.
+ */
+const TAREFAS_POR_CLIENTE = [
+  ["Apuração mensal de impostos", "Beatriz Nakamura"],
+  ["Conferência da folha de pagamento", "Rafael Queiroz"],
+  ["Envio das obrigações acessórias", "Camila Diniz"],
+] as const;
+
+async function semearSistemasDeBloqueio() {
+  await prisma.passoSaga.deleteMany();
+  await prisma.sagaBloqueio.deleteMany();
+  await prisma.bloqueioCliente.deleteMany();
+  await prisma.tarefaCliente.deleteMany();
+  await prisma.acessoPortalCliente.deleteMany();
+  await prisma.registroFinanceiro.deleteMany();
+  await prisma.falhaSimulada.deleteMany();
+
+  const clientes = await prisma.cliente.findMany({ select: { id: true } });
+
+  for (const cliente of clientes) {
+    await prisma.bloqueioCliente.create({
+      data: { clienteId: cliente.id, estado: "LIVRE" },
+    });
+    await prisma.registroFinanceiro.create({
+      data: { clienteId: cliente.id, inadimplente: false },
+    });
+    await prisma.acessoPortalCliente.create({
+      data: { clienteId: cliente.id, ativo: true },
+    });
+
+    for (const [titulo, responsavel] of TAREFAS_POR_CLIENTE) {
+      await prisma.tarefaCliente.create({
+        data: { clienteId: cliente.id, titulo, responsavel },
+      });
+    }
+  }
+
+  console.log(
+    `[seed] ${clientes.length} clientes nos 3 sistemas simulados, ${clientes.length * TAREFAS_POR_CLIENTE.length} tarefas`,
+  );
+}
+
 async function main() {
   await semearUsuarios();
   await semearClientes();
@@ -460,6 +508,7 @@ async function main() {
   await semearCertificados();
   await semearSituacaoFiscal();
   await semearExtratos();
+  await semearSistemasDeBloqueio();
 }
 
 main()

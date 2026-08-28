@@ -15,6 +15,10 @@ export const bancoFake = {
   clientes: [] as Registro[],
   situacoes: [] as Registro[],
   tentativas: [] as Registro[],
+  tarefas: [] as Registro[],
+  financeiro: [] as Registro[],
+  acessos: [] as Registro[],
+  falhas: [] as Registro[],
 };
 
 let sequencia = 0;
@@ -98,6 +102,75 @@ vi.mock("@/lib/db", () => ({
         return registro;
       },
     },
+    // --- SC-05: os três sistemas simulados -------------------------------
+    falhaSimulada: {
+      findUnique: async ({ where }: { where: { sistema: string } }) =>
+        bancoFake.falhas.find((f) => f.sistema === where.sistema) ?? null,
+    },
+    tarefaCliente: {
+      findMany: async ({ where }: { where: Registro }) =>
+        bancoFake.tarefas.filter((t) =>
+          Object.entries(where).every(([campo, valor]) => t[campo] === valor),
+        ),
+      update: async ({
+        where,
+        data,
+      }: {
+        where: { id: string };
+        data: Registro;
+      }) => {
+        const tarefa = bancoFake.tarefas.find((t) => t.id === where.id);
+        if (!tarefa) throw new Error(`tarefa ${where.id} não existe`);
+        Object.assign(tarefa, data);
+        return tarefa;
+      },
+    },
+    registroFinanceiro: {
+      findUnique: async ({ where }: { where: { clienteId: string } }) =>
+        bancoFake.financeiro.find((r) => r.clienteId === where.clienteId) ?? null,
+      upsert: async ({
+        where,
+        create,
+        update,
+      }: {
+        where: { clienteId: string };
+        create: Registro;
+        update: Registro;
+      }) => {
+        const existente = bancoFake.financeiro.find(
+          (r) => r.clienteId === where.clienteId,
+        );
+        if (existente) {
+          Object.assign(existente, update);
+          return existente;
+        }
+        bancoFake.financeiro.push({ ...create });
+        return create;
+      },
+    },
+    acessoPortalCliente: {
+      findUnique: async ({ where }: { where: { clienteId: string } }) =>
+        bancoFake.acessos.find((a) => a.clienteId === where.clienteId) ?? null,
+      upsert: async ({
+        where,
+        create,
+        update,
+      }: {
+        where: { clienteId: string };
+        create: Registro;
+        update: Registro;
+      }) => {
+        const existente = bancoFake.acessos.find(
+          (a) => a.clienteId === where.clienteId,
+        );
+        if (existente) {
+          Object.assign(existente, update);
+          return existente;
+        }
+        bancoFake.acessos.push({ ...create });
+        return create;
+      },
+    },
     agendamento: {
       findMany: async () => bancoFake.agendamentos,
       findUnique: async ({ where }: { where: { modulo: string } }) =>
@@ -126,5 +199,9 @@ beforeEach(() => {
   bancoFake.clientes.length = 0;
   bancoFake.situacoes.length = 0;
   bancoFake.tentativas.length = 0;
+  bancoFake.tarefas.length = 0;
+  bancoFake.financeiro.length = 0;
+  bancoFake.acessos.length = 0;
+  bancoFake.falhas.length = 0;
   sequencia = 0;
 });
