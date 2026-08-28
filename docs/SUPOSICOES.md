@@ -68,4 +68,29 @@ mesmo commit em que a decisão entra no código.
 - **[SC-02]** Assumi execução **diária**, embora o catálogo diga mensal, porque o próprio
   enunciado diz que "a planilha nasce vencida: no dia seguinte já não vale".
 
-_As suposições de SC-01 e SC-05 entram aqui conforme cada módulo é implementado._
+### SC-01 — Conversão de extrato bancário para OFX
+
+- **[SC-01]** Assumi que o extrato chega em PDF, com uma linha por lançamento e colunas
+  de data, histórico e valor, porque é o que o enunciado descreve ("PDF ou foto") e é o
+  formato que sistema bancário emite.
+- **[SC-01]** Assumi que o extrato declara saldo inicial e final, porque é o que permite
+  validar a leitura sem acesso ao banco — sem eles não há como afirmar que nenhum
+  lançamento ficou de fora, e o portal diz isso em vez de fingir que conferiu.
+- **[SC-01]** Assumi **OFX 1.0.2 (SGML)**, porque é a versão que sistema contábil
+  brasileiro importa. O enunciado só diz "OFX válido".
+- **[SC-01]** Assumi que os bancos são fictícios (Aurora, Meridiano, Pampa), como toda a
+  massa do projeto. O que importa é que cada um imprime de um jeito diferente — esse é o
+  problema que o registry resolve.
+- **[SC-01]** Assumi que **soma que não fecha não gera OFX**, porque erro que entra na
+  contabilidade só aparece na conciliação, quando corrigir custa mais. Não entregar é
+  melhor do que entregar errado.
+- **[SC-01]** Assumi que lançamento com confiança média ou baixa **não entra no OFX** até
+  alguém conferir, e que conferir **regera o arquivo** — senão a conferência não teria
+  efeito prático.
+- **[SC-01]** Assumi que o mesmo arquivo enviado duas vezes é recusado por hash, porque
+  reimportar duplicaria lançamento no sistema contábil.
+- **[SC-01]** Assumi que o `FITID` do OFX combina o extrato e a ordem do lançamento:
+  precisa ser estável entre reimportações e distinto entre lançamentos parecidos no
+  mesmo dia.
+
+_As suposições de SC-05 entram aqui quando o módulo for implementado._

@@ -55,7 +55,7 @@ export const MODULOS: readonly Modulo[] = [
     resumo:
       "Recebe o extrato em PDF ou foto, identifica os lançamentos e gera um OFX válido, separando o que não foi lido com confiança.",
     horasMes: 110,
-    disponivel: false,
+    disponivel: true,
   },
   {
     codigo: "SC-02",

@@ -377,12 +377,89 @@ async function semearSituacaoFiscal() {
   );
 }
 
+/**
+ * Extratos do SC-01.
+ *
+ * Usa os PDFs versionados em tests/fixtures/sc-01 — os mesmos que os testes
+ * exercitam e que a demonstração envia. O portal chega com extratos dentro:
+ * dois convertidos, um com lançamento em conferência, um de layout que nenhum
+ * parser conhece e um cuja soma não fecha. Os quatro desfechos possíveis, à
+ * vista, sem ninguém precisar enviar nada primeiro.
+ */
+const EXTRATOS_DE_EXEMPLO = [
+  "aurora-agosto-2026.pdf",
+  "meridiano-agosto-2026.pdf",
+  "pampa-agosto-2026.pdf",
+  "horizonte-layout-desconhecido.pdf",
+  "aurora-soma-nao-fecha.pdf",
+] as const;
+
+async function semearExtratos() {
+  const { readFileSync, existsSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const { receberExtrato, processarExtrato } = await import(
+    "../src/modules/sc-01/handler"
+  );
+
+  await prisma.lancamento.deleteMany();
+  await prisma.extratoImportado.deleteMany();
+  await prisma.arquivoArmazenado.deleteMany();
+
+  const clientes = await prisma.cliente.findMany({
+    select: { id: true },
+    orderBy: { razaoSocial: "asc" },
+    take: EXTRATOS_DE_EXEMPLO.length,
+  });
+
+  const pasta = join(process.cwd(), "tests", "fixtures", "sc-01");
+  let importados = 0;
+
+  for (const [indice, nome] of EXTRATOS_DE_EXEMPLO.entries()) {
+    const caminho = join(pasta, nome);
+
+    if (!existsSync(caminho)) {
+      console.warn(
+        `[seed] ${nome} não existe — rode "npx tsx scripts/gerar-extratos.ts".`,
+      );
+      continue;
+    }
+
+    const cliente = clientes[indice % clientes.length];
+
+    const { extratoId } = await receberExtrato({
+      clienteId: cliente.id,
+      nome,
+      mimeType: "application/pdf",
+      conteudo: new Uint8Array(readFileSync(caminho)),
+    });
+
+    try {
+      await processarExtrato(extratoId);
+    } catch (erro) {
+      // Dois dos arquivos falham de propósito: layout desconhecido e soma que
+      // não fecha. A falha registrada é parte da massa, não um defeito do seed.
+      await prisma.extratoImportado.update({
+        where: { id: extratoId },
+        data: {
+          status: "FALHOU",
+          erro: erro instanceof Error ? erro.message : "Falha ao processar.",
+        },
+      });
+    }
+
+    importados += 1;
+  }
+
+  console.log(`[seed] ${importados} extratos bancários importados`);
+}
+
 async function main() {
   await semearUsuarios();
   await semearClientes();
   await semearAgendamentos();
   await semearCertificados();
   await semearSituacaoFiscal();
+  await semearExtratos();
 }
 
 main()

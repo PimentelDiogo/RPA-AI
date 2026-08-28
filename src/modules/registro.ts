@@ -1,4 +1,5 @@
 import type { HandlerModulo } from "@/lib/execucao/motor";
+import { handlerSc01 } from "@/modules/sc-01/handler";
 import { handlerSc02 } from "@/modules/sc-02/handler";
 import { handlerSc20 } from "@/modules/sc-20/handler";
 
@@ -14,6 +15,7 @@ import { handlerSc20 } from "@/modules/sc-20/handler";
  * Cada automação acrescenta uma linha aqui na branch do seu módulo.
  */
 const HANDLERS = new Map<string, HandlerModulo>([
+  ["SC-01", (contexto) => handlerSc01(contexto)],
   ["SC-02", (contexto) => handlerSc02(contexto)],
   ["SC-20", (contexto) => handlerSc20(contexto)],
 ]);
