@@ -1,4 +1,8 @@
-import { FaixaVencimento, StatusItem } from "@/generated/prisma/enums";
+import {
+  FaixaVencimento,
+  StatusItem,
+  TipoArtefato,
+} from "@/generated/prisma/enums";
 import { prisma } from "@/lib/db";
 import { ErroDeNegocio } from "@/lib/execucao/erros";
 import type { ContextoExecucao, ResultadoHandler } from "@/lib/execucao/motor";
@@ -52,6 +56,18 @@ export async function handlerSc20(
   let naJanela = 0;
   let avisados = 0;
   let suprimidos = 0;
+
+  /**
+   * O que efetivamente saiu nesta rodada. Vira artefato no fim: o enunciado
+   * pede "o registro do que foi enviado" como saída visível, e uma contagem no
+   * resumo não é registro — é afirmação.
+   */
+  const enviados: {
+    certificado: string;
+    destinatario: string;
+    faixa: string;
+    diasRestantes: number;
+  }[] = [];
 
   for (const certificado of certificados) {
     const dias = diasRestantes(certificado.validade, agora);
@@ -130,6 +146,13 @@ export async function handlerSc20(
             registradoEm: recibo.enviadaEm,
           },
         });
+
+        enviados.push({
+          certificado: referencia,
+          destinatario: `${contato.nome} <${contato.email}>`,
+          faixa: ROTULO_FAIXA[faixa],
+          diasRestantes: dias,
+        });
       }
 
       avisados += 1;
@@ -151,6 +174,18 @@ export async function handlerSc20(
         dados: { dias, faixa },
       });
     }
+  }
+
+  if (enviados.length > 0) {
+    await contexto.registrarArtefato({
+      tipo: TipoArtefato.REGISTRO_DE_ENVIO,
+      nome: `Avisos enviados — ${enviados.length} mensagem(ns)`,
+      conteudo: {
+        canal: "outbox (nenhuma mensagem sai da aplicação)",
+        janelaDias,
+        mensagens: enviados,
+      },
+    });
   }
 
   return {

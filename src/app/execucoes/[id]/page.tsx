@@ -198,11 +198,11 @@ export default async function DetalheExecucao({
                     </span>
                   </div>
 
-                  {artefato.conteudo ? (
-                    <pre className="mt-2 max-h-72 overflow-auto rounded bg-nevoa p-3 font-mono text-[11px] whitespace-pre-wrap text-tinta">
-                      {JSON.stringify(artefato.conteudo, null, 2)}
-                    </pre>
-                  ) : null}
+                  <ConteudoDoArtefato
+                    mimeType={artefato.mimeType}
+                    nome={artefato.nome}
+                    conteudo={artefato.conteudo}
+                  />
 
                   {artefato.caminho ? (
                     <a
@@ -221,6 +221,46 @@ export default async function DetalheExecucao({
         ) : null}
       </main>
     </>
+  );
+}
+
+/**
+ * Imagem é a prova mais direta que este portal produz: a tela do órgão que o
+ * robô leu. Mostrar o base64 como texto seria guardar a prova e escondê-la.
+ */
+function ConteudoDoArtefato({
+  mimeType,
+  nome,
+  conteudo,
+}: {
+  mimeType: string | null;
+  nome: string;
+  conteudo: unknown;
+}) {
+  if (!conteudo || typeof conteudo !== "object") return null;
+
+  const base64 = (conteudo as { base64?: unknown }).base64;
+
+  if (mimeType?.startsWith("image/") && typeof base64 === "string") {
+    return (
+      <figure className="mt-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`data:${mimeType};base64,${base64}`}
+          alt={`Página do portal capturada durante a consulta: ${nome}`}
+          className="w-full rounded border border-border"
+        />
+        <figcaption className="mt-1 text-[11px] text-text-muted">
+          Captura da página que o robô leu, no momento da consulta.
+        </figcaption>
+      </figure>
+    );
+  }
+
+  return (
+    <pre className="mt-2 max-h-72 overflow-auto rounded bg-nevoa p-3 font-mono text-[11px] whitespace-pre-wrap text-tinta">
+      {JSON.stringify(conteudo, null, 2)}
+    </pre>
   );
 }
 
