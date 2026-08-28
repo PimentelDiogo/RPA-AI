@@ -69,7 +69,13 @@ export function HistoricoExecucoes({
               ) : null}
 
               <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
-                {formatarDataHora(execucao.iniciadaEm)}
+                {/* A data é o caminho para a prova: abre o item a item. */}
+                <Link
+                  href={`/execucoes/${execucao.id}`}
+                  className="text-petroleo hover:text-turquesa hover:underline"
+                >
+                  {formatarDataHora(execucao.iniciadaEm)}
+                </Link>
               </td>
               <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
                 {formatarDuracao(execucao.duracaoMs)}
@@ -92,6 +98,12 @@ export function HistoricoExecucoes({
                       {execucao.resumo}
                     </span>
                   ) : null}
+                  <Link
+                    href={`/execucoes/${execucao.id}`}
+                    className="text-xs text-turquesa hover:underline"
+                  >
+                    ver o que foi processado →
+                  </Link>
                 </div>
               </td>
             </tr>
