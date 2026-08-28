@@ -57,7 +57,8 @@ model Usuario {
   criadoEm     DateTime @default(now())
   atualizadoEm DateTime @updatedAt
 
-  execucoes Execucao[]
+  execucoes  Execucao[]
+  conferidos Lancamento[]
 
   @@map("usuario")
 }
@@ -84,6 +85,7 @@ model Cliente {
   contatos     ContatoAviso[]
   situacoes    SituacaoFiscal[]
   tentativas   ConsultaTentativa[]
+  extratos     ExtratoImportado[]
 
   @@index([razaoSocial])
   @@map("cliente")
@@ -420,4 +422,115 @@ model ConsultaTentativa {
   @@index([clienteId, orgao, iniciadaEm(sort: Desc)])
   @@index([sucesso])
   @@map("consulta_tentativa")
+}
+
+// ---------------------------------------------------------------------------
+// SC-01 — Conversão de extrato bancário para OFX
+// Projeto do módulo em SDD/SC-01/SDD.md
+// ---------------------------------------------------------------------------
+
+/// Como os lançamentos foram lidos. Aparece na tela porque muda o que se pode
+/// esperar do resultado: parser reconhece um layout conhecido, IA interpreta.
+enum OrigemLeitura {
+  PARSER
+  IA
+}
+
+/// Confiança de um lançamento. É o que decide o que entra direto no OFX e o
+/// que vai para a fila de conferência antes de virar contabilidade.
+enum ConfiancaLancamento {
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+enum StatusExtrato {
+  /// Recebido e ainda não processado — é a fila que o agendador varre.
+  RECEBIDO
+  PROCESSADO
+  FALHOU
+}
+
+/// Arquivo guardado pelo port `FileStorage`.
+///
+/// Fica em tabela própria de propósito: é infraestrutura, não domínio. O
+/// adapter real (S3, Vercel Blob) substitui esta tabela sem que o módulo saiba.
+model ArquivoArmazenado {
+  id       String   @id @default(cuid())
+  chave    String   @unique
+  nome     String
+  mimeType String
+  tamanho  Int
+  conteudo Bytes
+  criadoEm DateTime @default(now())
+
+  @@map("arquivo_armazenado")
+}
+
+model ExtratoImportado {
+  id         String  @id @default(cuid())
+  cliente    Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  clienteId  String
+  execucaoId String?
+
+  arquivoNome  String
+  arquivoChave String
+  /// Reconhece reenvio do mesmo arquivo e evita lançamento duplicado.
+  arquivoHash  String @unique
+
+  banco   String?
+  agencia String?
+  conta   String?
+
+  competenciaInicio DateTime? @db.Date
+  competenciaFim    DateTime? @db.Date
+  saldoInicial      Decimal?  @db.Decimal(14, 2)
+  saldoFinal        Decimal?  @db.Decimal(14, 2)
+
+  origemLeitura OrigemLeitura?
+  /// Qual parser reconheceu o layout. Nulo quando a leitura foi por IA.
+  parserUsado   String?
+
+  status StatusExtrato @default(RECEBIDO)
+  /// Mensagem legível quando o extrato não pôde ser convertido.
+  erro   String?
+
+  /// Diferença entre saldo inicial + lançamentos e o saldo final. Zero é o que
+  /// autoriza gerar o OFX; qualquer outro valor é motivo para não gerar.
+  diferencaSaldo Decimal? @db.Decimal(14, 2)
+
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  lancamentos Lancamento[]
+
+  @@index([clienteId, criadoEm(sort: Desc)])
+  @@index([status])
+  @@map("extrato_importado")
+}
+
+model Lancamento {
+  id        String           @id @default(cuid())
+  extrato   ExtratoImportado @relation(fields: [extratoId], references: [id], onDelete: Cascade)
+  extratoId String
+
+  /// Ordem em que aparece no extrato — o OFX preserva a sequência original.
+  ordem     Int
+  data      DateTime @db.Date
+  historico String
+  /// Negativo é débito. O sinal é parte do dado, não uma coluna à parte.
+  valor     Decimal  @db.Decimal(14, 2)
+
+  confianca         ConfiancaLancamento
+  /// Por que este lançamento caiu na fila. Obrigatório quando não é ALTA.
+  motivoConferencia String?
+
+  conferido      Boolean   @default(false)
+  conferidoPor   Usuario?  @relation(fields: [conferidoPorId], references: [id], onDelete: SetNull)
+  conferidoPorId String?
+  conferidoEm    DateTime?
+
+  @@index([extratoId, ordem])
+  @@index([confianca])
+  @@map("lancamento")
 }

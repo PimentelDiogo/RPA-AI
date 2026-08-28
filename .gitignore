@@ -10,10 +10,16 @@
 *.pfx
 
 # ---------------------------------------------------------------------------
-# Enunciado do desafio — material recebido, não é entregável do repositório
+# Enunciado do desafio — material recebido, não é entregável do repositório.
+#
+# A regra é ampla de propósito, para nenhum PDF recebido entrar por descuido.
+# As exceções são material que o projeto produz: o logo extraído da marca e os
+# extratos bancários sintéticos do SC-01, que são massa versionada e sem eles
+# os testes do módulo não rodam.
 # ---------------------------------------------------------------------------
 *.pdf
 !docs/**/*.pdf
+!tests/fixtures/**/*.pdf
 
 # ---------------------------------------------------------------------------
 # Dependências

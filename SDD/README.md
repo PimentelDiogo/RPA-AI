@@ -9,7 +9,7 @@ Um diretório por automação do escopo congelado. Cada um contém:
 
 | Automação | Natureza | Documento | Estado |
 |-----------|----------|-----------|--------|
-| **SC-01** — Conversão de extrato bancário para OFX | Agente de IA | [SC-01/SDD.md](SC-01/SDD.md) | Especificado |
+| **SC-01** — Conversão de extrato bancário para OFX | Agente de IA | [SC-01/SDD.md](SC-01/SDD.md) | **Implementado** (caminho determinístico; leitura por IA pendente) |
 | **SC-02** — Painel de situação fiscal dos clientes | RPA | [SC-02/SDD.md](SC-02/SDD.md) | **Implementado** (adapter Playwright pendente) |
 | **SC-05** — Bloqueio e desbloqueio de inadimplentes | RPA | [SC-05/SDD.md](SC-05/SDD.md) | Especificado |
 | **SC-20** — Vencimento de certificado digital | Controle sistematizado | [SC-20/SDD.md](SC-20/SDD.md) | **Implementado** |

@@ -2,7 +2,7 @@
 
 > **Natureza:** Agente de IA · **Complexidade:** Alta · **Frequência:** Mensal
 > **Setor:** Contábil · **Medição do mapeamento interno:** 110 h/mês
-> **Estado:** especificado, implementação pendente
+> **Estado:** implementado e no ar em https://rpa-ai.vercel.app/modulos/sc-01 — o caminho determinístico está completo; a leitura assistida por IA entra numa branch própria
 
 ---
 
