@@ -54,12 +54,19 @@ export function BotaoExecutar({
   const roteador = useRouter();
   const jaMostrado = useRef<ResultadoExecucao | null>(null);
 
-  // Contador de tempo enquanto roda. Reinicia a cada disparo.
+  // Contador de tempo enquanto roda. Conta a partir do instante em que o efeito
+  // começa, em vez de zerar o estado aqui: assim o valor acompanha o relógio de
+  // verdade, mesmo que a aba fique em segundo plano, e o último valor sobrevive
+  // para o diálogo mostrar quanto durou.
   useEffect(() => {
     if (!executando) return;
 
-    setSegundos(0);
-    const relogio = setInterval(() => setSegundos((s) => s + 1), 1000);
+    const inicio = Date.now();
+    const relogio = setInterval(
+      () => setSegundos(Math.floor((Date.now() - inicio) / 1000)),
+      250,
+    );
+
     return () => clearInterval(relogio);
   }, [executando]);
 
