@@ -224,6 +224,29 @@ ler com confiança.
     └── generated/prisma/  # Prisma Client gerado (não versionado)
 ```
 
+## Como conferir que uma automação rodou
+
+O portal não pede que se acredite nele. Para qualquer módulo:
+
+1. **`/execucoes`** — a rodada aparece com data, duração, quem disparou e resultado.
+2. **Clique na data** → o detalhe mostra **item a item** o que foi processado, com a
+   mensagem legível de cada falha, e os artefatos produzidos.
+3. **`/modulos/SC-XX`** — o estado do domínio mudou.
+4. **Rode de novo** — é aqui que se vê a regra funcionando: no SC-20 a segunda rodada
+   não comunica nada e registra as supressões; no SC-02 uma falha não apaga a leitura
+   anterior.
+
+No caso do RPA (SC-02), há prova visual: o adapter de navegador captura a tela do
+portal do órgão no momento da consulta, e a imagem fica anexada à execução.
+
+```bash
+npm run dev                   # o portal serve os órgãos simulados
+npm run rpa:sc-02 -- --ver    # navegador visível, operando o portal
+```
+
+O contrato de observabilidade que todos os módulos seguem está em
+[SDD/OBSERVABILIDADE.md](SDD/OBSERVABILIDADE.md).
+
 ## Onde entraria o real
 
 Nenhuma fronteira externa é chamada de verdade. Cada uma é uma interface com
