@@ -235,10 +235,11 @@ Exigida pelo enunciado ("só declare o que usou e onde"). Manter em `docs/USO-DE
 2. **Toda suposição vira uma linha em `docs/SUPOSICOES.md`** no mesmo commit em que a decisão entra no código.
 3. **Fronteira externa nunca é chamada direto.** Sempre `port` (interface) + `adapter` mock. O adapter real fica como stub documentado.
 4. **Nada de dado real.** Só massa sintética gerada pelo seed. CNPJ fictício, válido em formato.
-5. **Erro é produto.** Toda falha de execução precisa de mensagem legível para o operador + registro com hora, tentativa e causa. Carmim `#C4453D` só para isso.
-6. **Cores e fontes só via tokens.** Nenhum hex ou `font-family` literal em componente.
-7. **Commits pequenos e explicativos**, na branch da feature. Nunca commitar `.env`, dump de dados reais ou o PDF modificado.
-8. **Ao terminar um módulo**, verificar contra o checklist da seção 05: disparo sob demanda, agendamento, histórico, saída visível, identificação pelo código `SC-XX`.
+5. **Prova, não afirmação.** Todo módulo registra item a item (`registrarItem`) e o que produziu (`registrarArtefato`) — o contrato completo está em `SDD/OBSERVABILIDADE.md`, e é leitura obrigatória antes de implementar um módulo novo. Contagem no resumo não é evidência.
+6. **Erro é produto.** Toda falha de execução precisa de mensagem legível para o operador + registro com hora, tentativa e causa. Carmim `#C4453D` só para isso.
+7. **Cores e fontes só via tokens.** Nenhum hex ou `font-family` literal em componente.
+8. **Commits pequenos e explicativos**, na branch da feature. Nunca commitar `.env`, dump de dados reais ou o PDF modificado.
+9. **Ao terminar um módulo**, verificar contra o checklist da seção 05: disparo sob demanda, agendamento, histórico, saída visível, identificação pelo código `SC-XX`.
 
 ---
 

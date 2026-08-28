@@ -14,6 +14,12 @@ Um diretório por automação do escopo congelado. Cada um contém:
 | **SC-05** — Bloqueio e desbloqueio de inadimplentes | RPA | [SC-05/SDD.md](SC-05/SDD.md) | Especificado |
 | **SC-20** — Vencimento de certificado digital | Controle sistematizado | [SC-20/SDD.md](SC-20/SDD.md) | **Implementado** |
 
+> **Antes de implementar um módulo novo, leia
+> [OBSERVABILIDADE.md](OBSERVABILIDADE.md).** Ele define o que cada automação
+> precisa registrar para que se possa **provar** que rodou — item a item,
+> artefato, prova visual no caso de RPA. Um módulo não decide como se mostra:
+> preenche esses pontos, e a prova aparece nas telas que já existem.
+
 O contrato geral do projeto — regras de entrega, identidade visual, catálogo completo
 dos 20 processos — está em [`../CLAUDE.md`](../CLAUDE.md). Em qualquer divergência
 entre um SDD e o enunciado em PDF, **o PDF vence**.
@@ -28,6 +34,7 @@ Nenhum SDD reimplementa isto — vem pronto de `src/lib/`:
 | Motor de execução | `src/lib/execucao/motor.ts` | `Execucao` → `ExecucaoItem` → `Artefato`, duração, autoria, status |
 | Erro legível | `src/lib/execucao/erros.ts` | `ErroDeNegocio` vai para a tela; stack fica no banco |
 | Histórico | `/execucoes` e a aba de cada módulo | Data, duração, quem disparou, resultado |
+| Detalhe da execução | `/execucoes/[id]` | **Item a item** com o resultado de cada um, e os artefatos produzidos |
 | Agendamento | `Agendamento` + `POST /api/scheduler/tick` | Rodar sozinho, sem ninguém logado |
 
 Cada módulo implementa **apenas o seu handler** e as tabelas do seu domínio.
