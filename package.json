@@ -23,6 +23,7 @@
     "db:studio": "prisma studio",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset --force",
+    "demo:preparar": "tsx scripts/preparar-demo.ts",
     "setup": "npm install && npm run db:up && npm run db:migrate && npm run db:seed"
   },
   "dependencies": {
