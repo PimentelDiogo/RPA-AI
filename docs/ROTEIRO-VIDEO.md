@@ -14,11 +14,20 @@ automação, entre 3 e 4.
 
 Nada estraga mais um vídeo do que uma tela que não mostra o que devia.
 
-- [ ] **Rodar o seed em produção**, para os quatro módulos terem massa fresca:
-      `DATABASE_URL="<session pooler>" npx tsx prisma/seed.ts`
-- [ ] **Voltar a janela do SC-20 para 60 dias** — hoje está em 30, e com 30 menos
-      certificados aparecem no painel. Tela do SC-20, seletor no canto direito.
-- [ ] **Conferir que os três sistemas do SC-05 estão "no ar"** (sem falha ligada).
+- [ ] **Deixar o portal no estado "antes da primeira execução"** — um comando:
+
+      ```bash
+      DATABASE_URL="<session pooler do Supabase>" npm run demo:preparar
+      # confere o que faria; para valer:
+      DATABASE_URL="<session pooler do Supabase>" npm run demo:preparar -- --confirmar
+      ```
+
+      Ele mantém a massa e apaga o **resultado** dela: painel de situação fiscal
+      zerado, extratos de volta à fila, nenhum aviso comunicado, todos os clientes
+      livres, janela do SC-20 de volta em 60 dias e histórico de execuções limpo.
+      Assim cada automação **produz mudança visível** na gravação.
+- [ ] **Conferir que os três sistemas do SC-05 estão "no ar"** — o script já
+      desliga as falhas, mas vale olhar.
 - [ ] **Confirmar `ANTHROPIC_API_KEY` na Vercel**, se for demonstrar a leitura por
       IA no ar. Sem ela o SC-01 roda só com os parsers — o que também é uma
       demonstração honesta, mas escolha antes qual das duas vai mostrar.
