@@ -14,9 +14,12 @@ import { enviarExtrato, type ResultadoUpload } from "./acoes";
 export function FormularioEnvio({
   clientes,
   bancosSuportados,
+  leituraAssistida,
 }: {
   clientes: { id: string; nome: string }[];
   bancosSuportados: string[];
+  /** Há chave de IA configurada? A tela não promete o que não pode entregar. */
+  leituraAssistida: boolean;
 }) {
   const [resultado, enviar, enviando] = useActionState<
     ResultadoUpload | null,
@@ -73,10 +76,22 @@ export function FormularioEnvio({
       </div>
 
       <p className="mt-3 text-xs text-text-muted">
-        Layouts reconhecidos hoje: <strong>{bancosSuportados.join(", ")}</strong>.
-        Um banco novo entra como um arquivo de parser, sem mexer no resto do
-        módulo — o que não for reconhecido é recusado com o motivo, em vez de
-        virar lançamento errado.
+        Layouts reconhecidos por parser: <strong>{bancosSuportados.join(", ")}</strong>
+        . Um banco novo entra como um arquivo de parser, sem mexer no resto do
+        módulo.{" "}
+        {leituraAssistida ? (
+          <>
+            Layout desconhecido e arquivo digitalizado passam pela{" "}
+            <strong>leitura assistida</strong>, e os lançamentos vão para a fila
+            de conferência antes de compor o OFX.
+          </>
+        ) : (
+          <>
+            A leitura assistida não está habilitada neste ambiente: o que não for
+            reconhecido é recusado com o motivo, em vez de virar lançamento
+            errado.
+          </>
+        )}
       </p>
 
       {resultado ? (

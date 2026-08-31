@@ -9,11 +9,20 @@ import {
 import { prisma } from "@/lib/db";
 import { ErroDeNegocio } from "@/lib/execucao/erros";
 import type { ContextoExecucao, ResultadoHandler } from "@/lib/execucao/motor";
+import { LeitorClaude } from "@/modules/sc-01/adapters/leitor-claude";
 import { StorageBanco } from "@/modules/sc-01/adapters/storage-banco";
 import { extrairTexto } from "@/modules/sc-01/extracao";
 import { gerarOfx, identificadorDoLancamento } from "@/modules/sc-01/ofx";
-import { BANCOS_SUPORTADOS, reconhecer } from "@/modules/sc-01/parsers";
+import {
+  BANCOS_SUPORTADOS,
+  reconhecer,
+  type ExtratoLido,
+} from "@/modules/sc-01/parsers";
 import type { FileStorage } from "@/modules/sc-01/ports/file-storage";
+import {
+  LeituraAssistidaIndisponivel,
+  type LeitorAssistido,
+} from "@/modules/sc-01/ports/leitor-assistido";
 import { conferir, formatarReais, podeEntrarNoOfx } from "@/modules/sc-01/validacao";
 
 /**
@@ -168,6 +177,7 @@ export async function processarExtrato(
   extratoId: string,
   storage: FileStorage = new StorageBanco(),
   contexto?: ContextoExecucao,
+  leitor?: LeitorAssistido,
 ): Promise<ResultadoDoExtrato> {
   const extrato = await prisma.extratoImportado.findUniqueOrThrow({
     where: { id: extratoId },
@@ -183,30 +193,49 @@ export async function processarExtrato(
 
   const { texto, temTextoNativo } = await extrairTexto(conteudo, mimeType);
 
-  if (!temTextoNativo) {
-    // Aqui entra a leitura assistida por IA, na próxima fatia do módulo.
-    throw new ErroDeNegocio(
-      "Este arquivo não tem texto para ler — é uma imagem ou um PDF digitalizado.",
-      {
-        sugestao:
-          "A leitura assistida ainda não está habilitada neste ambiente; envie o extrato em PDF com texto.",
-      },
-    );
-  }
-
-  const parser = reconhecer(texto);
+  // O determinístico vem primeiro, sempre: parser reconhecido é leitura exata,
+  // instantânea e gratuita.
+  const parser = temTextoNativo ? reconhecer(texto) : undefined;
 
   if (!parser) {
-    throw new ErroDeNegocio(
-      "Nenhum layout conhecido reconheceu este extrato.",
-      {
-        sugestao: `Hoje o portal lê ${BANCOS_SUPORTADOS.join(", ")}. Um layout novo entra como um arquivo de parser, sem mexer no resto do módulo.`,
-      },
-    );
+    // Caminho de exceção: layout que nenhum parser conhece, ou arquivo sem
+    // texto (foto, digitalização). É aqui — e só aqui — que a IA entra.
+    return lerComAssistencia({
+      extratoId,
+      conteudo,
+      mimeType,
+      texto: temTextoNativo ? texto : undefined,
+      temTextoNativo,
+      contexto,
+      leitor,
+    });
   }
 
-  const lido = parser.parse(texto);
-  const conferencia = conferir(lido, OrigemLeitura.PARSER);
+  return gravarLeitura({
+    extratoId,
+    lido: parser.parse(texto),
+    origem: OrigemLeitura.PARSER,
+    parserUsado: parser.banco,
+    contexto,
+  });
+}
+
+/**
+ * Valida, grava e tenta gerar o OFX.
+ *
+ * **Os dois caminhos passam por aqui** — o do parser e o da leitura assistida.
+ * É o que garante que a mesma regra decide o que vira contabilidade: a origem
+ * muda a confiança de partida, e nada mais.
+ */
+async function gravarLeitura(dados: {
+  extratoId: string;
+  lido: ExtratoLido;
+  origem: OrigemLeitura;
+  parserUsado: string | null;
+  contexto?: ContextoExecucao;
+}): Promise<ResultadoDoExtrato> {
+  const { extratoId, lido, origem } = dados;
+  const conferencia = conferir(lido, origem);
 
   const emConferencia = conferencia.lancamentos.filter(
     (lancamento) => !podeEntrarNoOfx({ ...lancamento, conferido: false }),
@@ -226,8 +255,8 @@ export async function processarExtrato(
         competenciaFim: lido.competenciaFim ?? null,
         saldoInicial: lido.saldoInicial ?? null,
         saldoFinal: lido.saldoFinal ?? null,
-        origemLeitura: OrigemLeitura.PARSER,
-        parserUsado: parser.banco,
+        origemLeitura: origem,
+        parserUsado: dados.parserUsado,
         diferencaSaldo: conferencia.diferencaSaldo ?? null,
         status: StatusExtrato.PROCESSADO,
         erro: conferencia.impedimentos.join(" ") || null,
@@ -246,7 +275,7 @@ export async function processarExtrato(
     }),
   ]);
 
-  const ofxGerado = await tentarGerarOfx(extratoId, contexto);
+  const ofxGerado = await tentarGerarOfx(extratoId, dados.contexto);
 
   return {
     extratoId,
@@ -340,4 +369,69 @@ export async function tentarGerarOfx(
   }
 
   return true;
+}
+
+/**
+ * Leitura assistida — o caminho de exceção.
+ *
+ * Chamado quando nenhum parser reconhece o layout ou quando o arquivo não tem
+ * texto. O que a IA devolve **passa pela mesma validação** que a saída dos
+ * parsers, e todo lançamento nasce com confiança MÉDIA: interpretação sempre
+ * passa por conferência antes de virar contabilidade.
+ */
+async function lerComAssistencia(dados: {
+  extratoId: string;
+  conteudo: Uint8Array;
+  mimeType: string;
+  texto?: string;
+  temTextoNativo: boolean;
+  contexto?: ContextoExecucao;
+  leitor?: LeitorAssistido;
+}): Promise<ResultadoDoExtrato> {
+  let leitor = dados.leitor;
+
+  if (!leitor) {
+    try {
+      leitor = new LeitorClaude();
+    } catch {
+      // Sem chave configurada, o portal não promete o que não pode entregar.
+      throw new ErroDeNegocio(
+        dados.temTextoNativo
+          ? "Nenhum layout conhecido reconheceu este extrato."
+          : "Este arquivo não tem texto para ler — é uma imagem ou um PDF digitalizado.",
+        {
+          sugestao: `A leitura assistida não está habilitada neste ambiente. Hoje o portal lê ${BANCOS_SUPORTADOS.join(", ")} pelos parsers; um layout novo entra como um arquivo de parser, sem mexer no resto do módulo.`,
+        },
+      );
+    }
+  }
+
+  let lido;
+
+  try {
+    lido = await leitor.ler({
+      conteudo: dados.conteudo,
+      mimeType: dados.mimeType,
+      texto: dados.texto,
+    });
+  } catch (erro) {
+    throw new ErroDeNegocio(
+      erro instanceof LeituraAssistidaIndisponivel
+        ? erro.message
+        : "A leitura assistida falhou neste arquivo.",
+      {
+        sugestao:
+          "O arquivo continua guardado: dá para tentar de novo, ou acrescentar um parser para este layout.",
+        causa: erro,
+      },
+    );
+  }
+
+  return gravarLeitura({
+    extratoId: dados.extratoId,
+    lido,
+    origem: OrigemLeitura.IA,
+    parserUsado: null,
+    contexto: dados.contexto,
+  });
 }
