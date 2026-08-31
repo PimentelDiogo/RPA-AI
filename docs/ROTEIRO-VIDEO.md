@@ -261,6 +261,17 @@ produz média e vai para a **fila de conferência** antes de virar contabilidade
 
 ### 4. Execução — o que fazer na tela
 
+> **Os arquivos para enviar ao vivo estão em `tests/fixtures/sc-01/demo/`.** Os de
+> agosto o seed já importou, e reenviá-los é recusado por hash — comportamento
+> correto, mas não é o que você quer na gravação. Use os de **setembro**:
+>
+> | Arquivo | O que acontece |
+> |---|---|
+> | `aurora-setembro-2026.pdf` | Parser reconhece · 10 lançamentos · **OFX gerado** |
+> | `pampa-setembro-2026.pdf` | Parser reconhece · **1 lançamento vai para conferência** (histórico truncado pelo banco) |
+> | `horizonte-setembro-2026.pdf` | Nenhum parser conhece · **cai na leitura por IA** |
+> | `aurora-setembro-soma-nao-fecha.pdf` | Falta um lançamento de R$ 3.150,90 · **OFX não é gerado** |
+
 1. Mostrar a lista de extratos importados, com o parser que leu cada um.
 2. Abrir **"ver os lançamentos lidos"** e mostrar a coluna de confiança.
 3. **Baixar o OFX** e abrir o arquivo — cabeçalho `OFXHEADER:100`, um `STMTTRN`
@@ -269,7 +280,7 @@ produz média e vai para a **fila de conferência** antes de virar contabilidade
    reais e que o OFX **não foi gerado**.
    > *"Erro que entra na contabilidade só aparece na conciliação, quando corrigir
    > custa mais. Não entregar é melhor do que entregar errado."*
-5. **A IA:** enviar `tests/fixtures/sc-01/horizonte-layout-desconhecido.pdf` — um
+5. **A IA:** enviar `tests/fixtures/sc-01/demo/horizonte-setembro-2026.pdf` — um
    layout que nenhum parser conhece.
    → Lido em ~8 segundos, 10 lançamentos, **origem IA**, todos com confiança
    **média** e **todos na fila de conferência**.
