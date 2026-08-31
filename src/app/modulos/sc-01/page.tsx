@@ -7,6 +7,7 @@ import type { ConfiancaLancamento } from "@/generated/prisma/enums";
 import { exigirAcessoAoModulo } from "@/lib/auth/permissoes";
 import { prisma } from "@/lib/db";
 import { formatarData, formatarDataHora } from "@/lib/formato";
+import { LeitorClaude } from "@/modules/sc-01/adapters/leitor-claude";
 import { BANCOS_SUPORTADOS } from "@/modules/sc-01/parsers";
 import { formatarReais } from "@/modules/sc-01/validacao";
 import { aprovarLancamento, processarFila } from "./acoes";
@@ -104,6 +105,7 @@ export default async function ModuloSc01() {
               nome: c.nomeFantasia ?? c.razaoSocial,
             }))}
             bancosSuportados={[...BANCOS_SUPORTADOS]}
+            leituraAssistida={LeitorClaude.habilitada()}
           />
         </section>
 
