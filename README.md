@@ -245,7 +245,9 @@ npm run rpa:sc-02 -- --ver    # navegador visível, operando o portal
 ```
 
 O contrato de observabilidade que todos os módulos seguem está em
-[SDD/OBSERVABILIDADE.md](SDD/OBSERVABILIDADE.md).
+[SDD/OBSERVABILIDADE.md](SDD/OBSERVABILIDADE.md), e o roteiro da demonstração —
+o que mostrar, em que ordem e o que dizer em cada armadilha — está em
+[docs/ROTEIRO-VIDEO.md](docs/ROTEIRO-VIDEO.md).
 
 ## Onde entraria o real
 
